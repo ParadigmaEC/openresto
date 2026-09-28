@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using OpenRestoApi.Core.Application.DTOs;
 using OpenRestoApi.Core.Application.Utilities;
@@ -9,32 +8,29 @@ using OpenRestoApi.Infrastructure.Persistence.Repositories;
 namespace OpenRestoApi.Tests.Infrastructure;
 
 /// <summary>
-/// Real SQLite rather than the in-memory provider: the retention pass uses
+/// Real PostgreSQL rather than the in-memory provider: the retention pass uses
 /// <c>ExecuteDeleteAsync</c>, which the in-memory provider cannot translate.
 /// </summary>
 public class AdminAuditRepositoryTests : IDisposable
 {
-    private readonly SqliteConnection _connection;
+    private readonly PostgresTestDatabase _database = PostgresTestDatabase.Acquire();
 
     public AdminAuditRepositoryTests()
     {
-        _connection = new SqliteConnection("Data Source=:memory:");
-        _connection.Open();
     }
 
     public void Dispose()
     {
-        _connection.Dispose();
+        _database.Dispose();
         GC.SuppressFinalize(this);
     }
 
     private AppDbContext CreateContext()
     {
         DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(_connection)
+            .UseNpgsql(_database.ConnectionString)
             .Options;
         var db = new AppDbContext(options);
-        db.Database.EnsureCreated();
         return db;
     }
 

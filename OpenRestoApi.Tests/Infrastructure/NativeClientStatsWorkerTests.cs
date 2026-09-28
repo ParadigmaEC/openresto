@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -25,19 +24,11 @@ public class NativeClientStatsWorkerTests : IDisposable
     private static readonly TimeSpan Never = TimeSpan.FromHours(1);
     private static readonly DateTime Now = new(2026, 8, 31, 12, 0, 0, DateTimeKind.Utc);
 
-    private readonly SqliteConnection _connection;
-
-    public NativeClientStatsWorkerTests()
-    {
-        _connection = new SqliteConnection("Data Source=:memory:");
-        _connection.Open();
-        using AppDbContext db = CreateContext();
-        db.Database.EnsureCreated();
-    }
+    private readonly PostgresTestDatabase _database = PostgresTestDatabase.Acquire();
 
     public void Dispose()
     {
-        _connection.Dispose();
+        _database.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -49,7 +40,7 @@ public class NativeClientStatsWorkerTests : IDisposable
     /// <summary>
     /// Counts completed passes so a test can wait on the worker without querying the database
     /// from its own thread — the worker and the test would otherwise be two threads on one
-    /// SQLite connection, which fails for reasons that have nothing to do with the worker.
+    /// context, which fails for reasons that have nothing to do with the worker.
     /// </summary>
     private sealed class CountingRepository(INativeClientStatsRepository inner) : INativeClientStatsRepository
     {
@@ -89,7 +80,7 @@ public class NativeClientStatsWorkerTests : IDisposable
     private AppDbContext CreateContext()
     {
         DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(_connection)
+            .UseNpgsql(_database.ConnectionString)
             .Options;
         return new AppDbContext(options);
     }

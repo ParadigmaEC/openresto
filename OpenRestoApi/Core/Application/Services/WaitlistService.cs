@@ -21,8 +21,26 @@ public class WaitlistService(
     IWaitlistReadyNotifier? readyNotifier = null,
     INotificationQueue? notificationQueue = null,
     ICurrentUserService? currentUser = null,
-    IAuditScope? audit = null)
+    IAuditScope? audit = null,
+    IBookingWriteLock? writeLock = null)
 {
+    /// <summary>
+    /// Castle's generated proxy constructors drop default values, so a Moq class mock reaches only
+    /// a constructor of exactly matching arity. This is that constructor.
+    /// </summary>
+    public WaitlistService(
+        IWaitlistRepository waitlist,
+        IRestaurantRepository restaurants,
+        IBookingRepository bookings,
+        TableAutoAssigner assigner,
+        ISystemClock systemClock,
+        IWaitlistReadyNotifier? notifier,
+        INotificationQueue? notifications,
+        ICurrentUserService? user,
+        IAuditScope? auditScope)
+        : this(waitlist, restaurants, bookings, assigner, systemClock, notifier, notifications, user, auditScope, null)
+    { }
+
     /// <summary>A party still queued this long after joining has almost certainly gone, and would clog the queue.</summary>
     public static readonly TimeSpan StaleAfter = TimeSpan.FromHours(6);
 
@@ -40,6 +58,7 @@ public class WaitlistService(
     private readonly INotificationQueue? _notificationQueue = notificationQueue;
     private readonly ICurrentUserService _currentUser = currentUser ?? NullCurrentUserService.Instance;
     private readonly IAuditScope _audit = audit ?? NullAuditScope.Instance;
+    private readonly IBookingWriteLock _writeLock = writeLock ?? NoBookingWriteLock.Instance;
 
     /// <summary>
     /// True while the public site offers the queue: the location is walk-in only and open at
@@ -238,6 +257,22 @@ public class WaitlistService(
         Restaurant restaurant = await LoadRestaurantAsync(entry.RestaurantId);
         DateTime now = _clock.UtcNow;
 
+        Booking booking = await _writeLock.RunAsync(restaurant.Id, () => WriteSeatingAsync(entry, restaurant, now, req));
+
+        _notificationQueue?.EnqueueBookingCreated(booking, restaurant.Name);
+        Describe(AuditActions.WaitlistSeat, entry, $"Seated ticket #{entry.Number} as booking {booking.BookingRef}");
+
+        return new SeatWaitlistEntryResponse
+        {
+            Entry = BookingGuestVisibility.Apply(ToClosedDto(entry), _currentUser),
+            BookingId = booking.Id,
+            BookingRef = booking.BookingRef,
+        };
+    }
+
+    /// <summary>Picks the unit and books it under the write lock, since it is only free until someone else takes it.</summary>
+    private async Task<Booking> WriteSeatingAsync(WaitlistEntry entry, Restaurant restaurant, DateTime now, SeatWaitlistEntryRequest req)
+    {
         IReadOnlyList<TableCandidate> free = await _autoAssigner.BuildCandidatesAsync(restaurant, entry.Seats, now, includeWalkInOnly: true);
         TableCandidate unit = PickUnit(free, req)
             ?? throw new ConflictException("No free table can seat this party right now.") { Code = ErrorCodes.WaitlistNoTableFree };
@@ -262,16 +297,7 @@ public class WaitlistService(
         Close(entry, WaitlistStatus.Seated);
         entry.BookingId = booking.Id;
         await _waitlist.SaveChangesAsync();
-
-        _notificationQueue?.EnqueueBookingCreated(booking, restaurant.Name);
-        Describe(AuditActions.WaitlistSeat, entry, $"Seated ticket #{entry.Number} as booking {booking.BookingRef}");
-
-        return new SeatWaitlistEntryResponse
-        {
-            Entry = BookingGuestVisibility.Apply(ToClosedDto(entry), _currentUser),
-            BookingId = booking.Id,
-            BookingRef = booking.BookingRef,
-        };
+        return booking;
     }
 
     public async Task RemoveAsync(int entryId)

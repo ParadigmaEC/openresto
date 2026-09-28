@@ -9,6 +9,7 @@ namespace OpenRestoApi.Infrastructure.Persistence.Repositories;
 [OnlyAccessibleBy("OpenRestoApi.Tests.Services.AuthServiceTests")]
 [OnlyAccessibleBy("OpenRestoApi.Tests.Services.SecurityQuestionsServiceTests")]
 [OnlyAccessibleBy("OpenRestoApi.Tests.Services.UserServiceTests")]
+[OnlyAccessibleBy("OpenRestoApi.Tests.Integration.RepositoryTests")]
 [ExternalAccessAllowed]
 internal class AdminCredentialRepository(AppDbContext db) : IAdminCredentialRepository
 {

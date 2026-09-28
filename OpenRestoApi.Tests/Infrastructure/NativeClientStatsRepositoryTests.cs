@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using OpenRestoApi.Core.Application.DTOs;
 using OpenRestoApi.Core.Domain;
@@ -8,7 +7,7 @@ using OpenRestoApi.Infrastructure.Persistence.Repositories;
 namespace OpenRestoApi.Tests.Infrastructure;
 
 /// <summary>
-/// The counter arithmetic, against real SQLite rather than the in-memory provider: the upsert
+/// The counter arithmetic, against real PostgreSQL rather than the in-memory provider: the upsert
 /// adds rather than replaces, days stay separate buckets, and the two reporting windows are
 /// counted independently of each other.
 /// </summary>
@@ -16,27 +15,24 @@ public class NativeClientStatsRepositoryTests : IDisposable
 {
     private static readonly DateTime Now = new(2026, 8, 31, 12, 0, 0, DateTimeKind.Utc);
 
-    private readonly SqliteConnection _connection;
+    private readonly PostgresTestDatabase _database = PostgresTestDatabase.Acquire();
 
     public NativeClientStatsRepositoryTests()
     {
-        _connection = new SqliteConnection("Data Source=:memory:");
-        _connection.Open();
     }
 
     public void Dispose()
     {
-        _connection.Dispose();
+        _database.Dispose();
         GC.SuppressFinalize(this);
     }
 
     private AppDbContext CreateContext()
     {
         DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(_connection)
+            .UseNpgsql(_database.ConnectionString)
             .Options;
         var db = new AppDbContext(options);
-        db.Database.EnsureCreated();
         return db;
     }
 

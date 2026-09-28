@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using OpenRestoApi.Core.Application.DTOs;
@@ -15,28 +14,41 @@ namespace OpenRestoApi.Tests.Services;
 
 public partial class AdminServiceTests : IDisposable
 {
-    private readonly SqliteConnection _connection;
+    private readonly PostgresTestDatabase _database = PostgresTestDatabase.Acquire();
     private readonly AppDbContext _db;
     private readonly Mock<IHoldService> _holdServiceMock = new();
     private readonly Mock<IEmailService> _emailServiceMock = new();
 
     public AdminServiceTests()
     {
-        _connection = new SqliteConnection("Data Source=:memory:");
-        _connection.Open();
 
         DbContextOptions<AppDbContext> opts = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(_connection)
+            .UseNpgsql(_database.ConnectionString)
             .Options;
 
         _db = new AppDbContext(opts);
-        _db.Database.EnsureCreated();
+    }
+
+    /// <summary>
+    /// Lets a test insert a dangling reference. PostgreSQL has no per-connection switch for
+    /// foreign keys, so the constraint is dropped inside a transaction the test never commits:
+    /// disposing the context rolls it back and the pooled database keeps its schema.
+    /// </summary>
+    private async Task DropForeignKeyForThisTestAsync(string table, params string[] constraints)
+    {
+        await _db.Database.BeginTransactionAsync();
+        foreach (string constraint in constraints)
+        {
+#pragma warning disable EF1002 // Identifiers are test constants, not input.
+            await _db.Database.ExecuteSqlRawAsync($"ALTER TABLE \"{table}\" DROP CONSTRAINT \"{constraint}\"");
+#pragma warning restore EF1002
+        }
     }
 
     public void Dispose()
     {
         _db.Dispose();
-        _connection.Dispose();
+        _database.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -544,6 +556,7 @@ public partial class AdminServiceTests : IDisposable
     // One free-text param spans all three fields instead (#358).
     [Theory]
     [InlineData("ali")]           // partial name
+    [InlineData("SMITH")]         // name, wrong case: PostgreSQL's LIKE is case-sensitive
     [InlineData("ALICE@EX")]      // partial email, wrong case
     [InlineData("bc12")]          // mid-string slice of the booking reference
     [InlineData("99123")]         // slice of the phone
@@ -820,12 +833,10 @@ public partial class AdminServiceTests : IDisposable
     {
         // ExtendBookingAsync fetches the booking via FindByIdAsync (no eager-loaded Restaurant
         // navigation) and then looks up the restaurant separately — an orphaned RestaurantId
-        // legitimately returns null here, exercising the `?? 60` default duration fallback. FK
-        // enforcement (on by default for this connection) is disabled so the dangling
-        // RestaurantId can be inserted at all.
+        // legitimately returns null here, exercising the `?? 60` default duration fallback.
         AdminService svc = CreateService();
         DateTime date = DateTime.UtcNow;
-        await _db.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=OFF");
+        await DropForeignKeyForThisTestAsync("Bookings", "FK_Bookings_Restaurants_RestaurantId");
         _db.Bookings.Add(new Booking { Id = 1, RestaurantId = 999, SectionId = null, TableId = null, Date = date, EndTime = date.AddHours(-1), BookingRef = "B1" });
         await _db.SaveChangesAsync();
 
@@ -855,14 +866,15 @@ public partial class AdminServiceTests : IDisposable
         // The re-fetch inside the notification branch (GetByIdAsync) Include()s the required
         // Restaurant navigation, which EF Core compiles to an inner join — deleting the
         // restaurant row directly makes that re-fetch return null entirely, driving both the
-        // `withRestaurant ?? booking` and `?.Restaurant?.Name ?? ""` fallbacks. FK enforcement
-        // (on by default for this connection) is turned off first so the raw DELETE doesn't
-        // cascade-remove the booking along with its restaurant.
+        // `withRestaurant ?? booking` and `?.Restaurant?.Name ?? ""` fallbacks. The booking's
+        // foreign keys are dropped first so the raw DELETE neither cascade-removes the booking
+        // with its restaurant nor stops the cancel from saving the section and table it names.
         SeedBase(1);
         _db.Bookings.Add(new Booking { Id = 1, RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow.AddHours(1), BookingRef = "B1" });
         await _db.SaveChangesAsync();
-        await _db.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=OFF");
-        await _db.Database.ExecuteSqlRawAsync("DELETE FROM Restaurants WHERE Id = 1");
+        await DropForeignKeyForThisTestAsync(
+            "Bookings", "FK_Bookings_Restaurants_RestaurantId", "FK_Bookings_Sections_SectionId", "FK_Bookings_Tables_TableId");
+        await _db.Database.ExecuteSqlRawAsync("DELETE FROM \"Restaurants\" WHERE \"Id\" = 1");
 
         var notificationQueue = new Mock<INotificationQueue>();
         AdminService svc = CreateServiceWithNotifications(notificationQueue.Object);
@@ -1363,12 +1375,10 @@ public partial class AdminServiceTests : IDisposable
         // booking.TableId points at a table row that no longer exists (removed directly here,
         // bypassing the normal DeleteTableAsync FK-null flow) — resolvedTableId still carries a
         // value, but FindByIdAsync(999) returns null, so the capacity guard must be skipped
-        // instead of throwing a NullReferenceException on currentTable.Seats. FK enforcement
-        // (on by default for this connection) is disabled so the dangling TableId can be
-        // inserted at all.
+        // instead of throwing a NullReferenceException on currentTable.Seats.
         AdminService svc = CreateService();
         SeedBase(1);
-        await _db.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=OFF");
+        await DropForeignKeyForThisTestAsync("Bookings", "FK_Bookings_Tables_TableId");
         _db.Bookings.Add(new Booking { Id = 1, RestaurantId = 1, SectionId = 1, TableId = 999, Date = DateTime.UtcNow, BookingRef = "B1", Seats = 2 });
         await _db.SaveChangesAsync();
 
@@ -1926,11 +1936,9 @@ public partial class AdminServiceTests : IDisposable
     {
         // SectionId/TableId are set but no matching row exists (e.g. removed independently of
         // the normal delete flow) — the fallback must include the numeric id for identifiability.
-        // FK enforcement (on by default for this connection) is disabled so the dangling ids
-        // can be inserted at all.
         AdminService svc = CreateService();
         _db.Restaurants.Add(new Restaurant { Id = 1, Name = "Test", Timezone = "UTC" });
-        await _db.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=OFF");
+        await DropForeignKeyForThisTestAsync("Bookings", "FK_Bookings_Sections_SectionId", "FK_Bookings_Tables_TableId");
         _db.Bookings.Add(new Booking { Id = 1, RestaurantId = 1, SectionId = 42, TableId = 99, Date = DateTime.UtcNow, BookingRef = "B1" });
         await _db.SaveChangesAsync();
 

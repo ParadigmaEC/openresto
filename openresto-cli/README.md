@@ -36,7 +36,7 @@ more than the occasional one-off command.
 docker run --rm \
   -e OPENRESTO_URL=https://booking.example.com \
   -e OPENRESTO_API_KEY=orst_1_your-secret \
-  ghcr.io/karanshukla/openresto-cli:<tag> bookings list
+  ghcr.io/paradigmaec/openresto-cli:<tag> bookings list
 ```
 
 Use `latest` for the newest release, or pin a specific version (e.g. `1.9.0`) to match your
@@ -46,9 +46,9 @@ mount a config directory across runs:
 
 ```bash
 docker run --rm -it -v openresto-cli-config:/home/node/.config/openresto \
-  ghcr.io/karanshukla/openresto-cli:<tag> auth login
+  ghcr.io/paradigmaec/openresto-cli:<tag> auth login
 docker run --rm -v openresto-cli-config:/home/node/.config/openresto \
-  ghcr.io/karanshukla/openresto-cli:<tag> bookings list
+  ghcr.io/paradigmaec/openresto-cli:<tag> bookings list
 ```
 
 (`auth login` needs `-it` so its hidden-input prompt has a real terminal; later commands don't.)

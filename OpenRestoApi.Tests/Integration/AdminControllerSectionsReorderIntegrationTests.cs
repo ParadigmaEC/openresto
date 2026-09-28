@@ -10,11 +10,11 @@ using OpenRestoApi.Tests.TestInfrastructure;
 namespace OpenRestoApi.Tests.Integration;
 
 /// <summary>
-/// End-to-end (real ASP.NET Core pipeline + SQLite) coverage for #178's
+/// End-to-end (real ASP.NET Core pipeline + PostgreSQL) coverage for #178's
 /// PATCH /api/admin/restaurants/{id}/sections/reorder, layered on top of the
 /// already-thorough service/controller/migration unit tests. These tests go through
 /// the real HTTP pipeline (auth middleware, model binding, routing) and a real
-/// SQLite database, exercising the full round trip across the three call sites the
+/// PostgreSQL database, exercising the full round trip across the three call sites the
 /// investigation identified (admin sections lookup, admin tables lookup, and the
 /// public/customer-facing restaurant read) rather than a single mocked service call.
 /// </summary>

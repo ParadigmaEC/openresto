@@ -123,8 +123,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             a.HasKey(x => x.Id);
             // Emails are lower-cased on every write path (bootstrap, create-user, change-email),
             // so an ordinary unique index is enough to make "one account per address"
-            // case-insensitive — no NOCASE collation change, which SQLite can only apply by
-            // rebuilding the table.
+            // case-insensitive without a case-insensitive collation.
             a.HasIndex(x => x.Email).IsUnique();
             a.Property(x => x.DisplayName).HasMaxLength(UserFields.MaxDisplayNameLength);
             a.Property(x => x.Role).HasMaxLength(UserFields.MaxRoleLength).HasDefaultValue(UserRoles.Owner);
@@ -170,9 +169,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<AdminApiKey>(k =>
         {
             k.HasKey(x => x.Id);
-            // Cascade so deleting a user through EF takes their keys with it. It does not
-            // cover the demo reset: that applies raw SQL under PRAGMA foreign_keys=OFF, where
-            // no cascade fires, so scripts/demo_data.py deletes AdminApiKeys explicitly.
+            // Cascade so deleting a user through EF takes their keys with it. The demo reset
+            // does not rely on it: scripts/demo_data.py deletes AdminApiKeys explicitly.
             k.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             k.Property(x => x.Name).IsRequired().HasMaxLength(ApiKeyFields.MaxNameLength);
             k.Property(x => x.KeyHash).IsRequired().HasMaxLength(ApiKeyFields.KeyHashLength);

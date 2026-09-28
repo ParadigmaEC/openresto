@@ -13,7 +13,6 @@ permissions:
   pull-requests: write
   issues: write
   checks: write
-  deployments: write
 
 jobs:
   frontend:
@@ -223,6 +222,22 @@ jobs:
   backend:
     name: Backend CI
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: openresto
+          POSTGRES_PASSWORD: openresto
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U openresto"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # PostgresTestDatabase creates a database per test factory, so the role needs CREATEDB.
+      OPENRESTO_TEST_POSTGRES: "Host=localhost;Port=5432;Username=openresto;Password=openresto;Database=postgres"
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
@@ -311,11 +326,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
-
-      - name: Patch backend env file for CI
-        run: |
-          sed -i 's|CONNECTION_STRING=.*|CONNECTION_STRING=Data Source=/tmp/openresto.db|' \
-            ./OpenRestoApi/.env.docker
 
       - name: Build all containers
         run: docker compose build
@@ -435,11 +445,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v7
 
-      - name: Patch backend env file for CI
-        run: |
-          sed -i 's|CONNECTION_STRING=.*|CONNECTION_STRING=Data Source=/tmp/openresto.db|' \
-            ./OpenRestoApi/.env.docker
-
       - name: Build all containers
         run: docker compose build
 
@@ -522,11 +527,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v7
 
-      - name: Patch backend env file for CI
-        run: |
-          sed -i 's|CONNECTION_STRING=.*|CONNECTION_STRING=Data Source=/tmp/openresto.db|' \
-            ./OpenRestoApi/.env.docker
-
       - name: Build all containers
         run: docker compose build
 
@@ -596,9 +596,23 @@ jobs:
         if: failure()
         run: docker compose logs --tail=100
 
-  deploy:
-    name: Deploy to VPS
-    needs: [frontend, routes, backend, docker, e2e-smoke, e2e-extensive]
+  images:
+    name: Publish images
+    needs:
+      [
+        frontend,
+        routes,
+        native-bundle,
+        doc-links,
+        root-scripts,
+        openapi-drift,
+        backend,
+        docker,
+        e2e-smoke,
+        e2e-extensive,
+      ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/deploy.yml
-    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-images.yml

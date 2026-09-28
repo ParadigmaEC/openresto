@@ -17,9 +17,9 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
     {
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Restaurant restaurant = db.Restaurants.First();
-        Section section = db.Sections.First(s => s.RestaurantId == restaurant.Id);
-        Table table = db.Tables.First(t => t.SectionId == section.Id);
+        Restaurant restaurant = db.Restaurants.OrderBy(r => r.Id).First();
+        Section section = db.Sections.OrderBy(s => s.Id).First(s => s.RestaurantId == restaurant.Id);
+        Table table = db.Tables.OrderBy(t => t.Id).First(t => t.SectionId == section.Id);
         return (restaurant.Id, section.Id, table.Id);
     }
 
@@ -343,7 +343,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
     {
         // Customer-facing booking creation rejects past dates, so seed the past booking
         // via the admin route (intentionally exempt per #160) then exercise the real
-        // customer cancel endpoint end-to-end (HTTP -> controller -> service -> SQLite).
+        // customer cancel endpoint end-to-end (HTTP -> controller -> service -> PostgreSQL).
         HttpClient adminClient = _factory.CreateAuthenticatedClient();
         (int restaurantId, int sectionId, int tableId) = GetSeededIds();
         HttpResponseMessage createResp = await adminClient.PostAsJsonAsync("/api/admin/bookings", new
@@ -599,7 +599,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
     {
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Restaurant restaurant = db.Restaurants.First();
+        Restaurant restaurant = db.Restaurants.OrderBy(r => r.Id).First();
         restaurant.BookingRefFormat = format;
         db.SaveChanges();
     }
@@ -608,8 +608,8 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
     {
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Restaurant restaurant = db.Restaurants.First();
-        Section section = db.Sections.First(s => s.RestaurantId == restaurant.Id);
+        Restaurant restaurant = db.Restaurants.OrderBy(r => r.Id).First();
+        Section section = db.Sections.OrderBy(s => s.Id).First(s => s.RestaurantId == restaurant.Id);
         Table table = db.Tables.OrderByDescending(t => t.Id).First(t => t.SectionId == section.Id);
         db.Bookings.Add(new Booking
         {

@@ -1,231 +1,42 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Sockets;
+using CustomAccessibility.Attributes;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using OpenRestoApi.Infrastructure.Persistence;
 
 namespace OpenRestoApi.Extensions;
 
 public static partial class DatabaseExtensions
 {
+    public const string ConnectionStringKey = "ConnectionStrings:DefaultConnection";
+    public const string ConnectionStringEnvVar = "CONNECTION_STRING";
+
+    internal const int StartupMaxRetries = 10;
+    internal static readonly TimeSpan StartupRetryDelay = TimeSpan.FromSeconds(2);
+
     [LoggerMessage(Level = LogLevel.Information, Message = "Startup Diagnostics:")]
     private static partial void LogStartupDiagnostics(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "  - Connection String: {ConnectionString}")]
-    private static partial void LogConnectionString(ILogger logger, string connectionString);
+    [LoggerMessage(Level = LogLevel.Information, Message = "  - Database: {Database} on {Host}:{Port} as {Username}")]
+    private static partial void LogDatabaseTarget(ILogger logger, string? database, string? host, int port, string? username);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "  - Current User: {User}")]
-    private static partial void LogCurrentUser(ILogger logger, string user);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "  - Resolved DB Path: {Path}")]
-    private static partial void LogResolvedDbPath(ILogger logger, string path);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "  - DB Directory: {Dir} (Exists: {Exists})")]
-    private static partial void LogDbDirectoryInfo(ILogger logger, string dir, bool exists);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "  - DB Directory is writable.")]
-    private static partial void LogDbDirectoryWritable(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "  - DB Directory IS NOT WRITABLE: {Message}")]
-    private static partial void LogDbDirectoryNotWritable(ILogger logger, string message);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "  - Created DB Directory: {Dir}")]
-    private static partial void LogCreatedDbDirectory(ILogger logger, string dir);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "  - Failed to create DB Directory: {Message}")]
-    private static partial void LogFailedToCreateDbDirectory(ILogger logger, string message);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Database volume not yet writable/available (SQLite Error {ErrorCode}). Retry {RetryCount}/{MaxRetries} in {Delay}ms...")]
-    private static partial void LogDatabaseRetry(ILogger logger, int errorCode, int retryCount, int maxRetries, int delay);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Database not reachable yet ({Reason}). Retry {RetryCount}/{MaxRetries} in {Delay}ms...")]
+    private static partial void LogDatabaseRetry(ILogger logger, string reason, int retryCount, int maxRetries, int delay);
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "FATAL ERROR during database initialization. The application cannot start.")]
     private static partial void LogFatalError(ILogger logger, Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "  - Legacy migration history detected. Remapping {Count} old migration(s) to consolidated InitialCreate.")]
-    private static partial void LogMigrationRemap(ILogger logger, int count);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "  - Migration history is already up to date. No remap needed.")]
-    private static partial void LogMigrationRemapSkipped(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "  - DB diagnostics: MainDbBytes={MainBytes} WalExists={WalExists} WalBytes={WalBytes} ShmExists={ShmExists} JournalMode=\"{JournalMode}\"")]
-    private static partial void LogDbDiagnostics(ILogger logger, long mainBytes, bool walExists, long walBytes, bool shmExists, string journalMode);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "  - integrity_check: {Result}")]
-    private static partial void LogIntegrityOk(ILogger logger, string result);
-
-    [LoggerMessage(Level = LogLevel.Critical, Message = "  - integrity_check FAILED: {Result}")]
-    private static partial void LogIntegrityFailed(ILogger logger, string result);
-
-    private const string ConsolidatedMigrationId = "20260530173531_InitialCreate";
-
-    // COUNT(*) always returns exactly one row and SQLite's COUNT aggregate never yields SQL
-    // NULL, so ExecuteScalar() here can never itself return null — the `?? 0L` is unreachable
-    // ADO.NET-defensive boilerplate that no real SQLite connection can exercise. Isolated into
-    // its own method (rather than excluding the callers wholesale) so the surrounding,
-    // genuinely-tested branch logic in RemapLegacyMigrationHistory/AddColumnIfMissing keeps
-    // full coverage visibility.
-    [ExcludeFromCodeCoverage(Justification = "Unreachable: ExecuteScalar on a COUNT(*) query always returns a non-null boxed long, so the ?? 0L fallback can never run against a real SQLite connection.")]
-    private static long ExecuteScalarCount(System.Data.Common.DbCommand command) => (long)(command.ExecuteScalar() ?? 0L);
-
-    private static void RemapLegacyMigrationHistory(AppDbContext db, ILogger logger)
-    {
-        // Only attempt this if the DB already exists (i.e. we can connect).
-        if (!db.Database.CanConnect())
-        {
-            return;
-        }
-
-        try
-        {
-            // Use raw ADO.NET so we don't depend on the EF migration infrastructure itself.
-            // Track whether we opened the connection so we can restore its original state.
-            var connection = db.Database.GetDbConnection();
-            bool weOpenedConnection = connection.State != System.Data.ConnectionState.Open;
-            if (weOpenedConnection)
-            {
-                connection.Open();
-            }
-
-            try
-            {
-                // Check whether the migrations history table exists at all.
-                using var historyExistsCmd = connection.CreateCommand();
-                historyExistsCmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='__EFMigrationsHistory'";
-                var historyTableExists = ExecuteScalarCount(historyExistsCmd) > 0;
-
-                // Check whether the schema is already in place (tables exist from a previous deployment).
-                using var schemaExistsCmd = connection.CreateCommand();
-                schemaExistsCmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='AdminCredentials'";
-                var schemaExists = ExecuteScalarCount(schemaExistsCmd) > 0;
-
-                if (!schemaExists)
-                {
-                    return; // fresh install — Migrate() will build the schema from scratch
-                }
-
-                // Schema already exists. Check if InitialCreate is already recorded.
-                bool initialCreateRecorded = false;
-                if (historyTableExists)
-                {
-                    using var checkCmd = connection.CreateCommand();
-                    checkCmd.CommandText = "SELECT COUNT(*) FROM __EFMigrationsHistory WHERE MigrationId = @id";
-                    var p = checkCmd.CreateParameter();
-                    p.ParameterName = "@id";
-                    p.Value = ConsolidatedMigrationId;
-                    checkCmd.Parameters.Add(p);
-                    initialCreateRecorded = ExecuteScalarCount(checkCmd) > 0;
-                }
-
-                if (initialCreateRecorded)
-                {
-                    LogMigrationRemapSkipped(logger);
-                    // Still patch any columns that may be missing from older deployments.
-                    AddColumnIfMissing(connection, "Bookings", "CustomerName", "TEXT NULL");
-                    return;
-                }
-
-                // The schema exists but InitialCreate isn't in the history — stamp it so
-                // Migrate() won't try to re-create tables that are already there.
-                // Count legacy entries for the log message.
-                int legacyCount = 0;
-                if (historyTableExists)
-                {
-                    using var countCmd = connection.CreateCommand();
-                    countCmd.CommandText = "SELECT COUNT(*) FROM __EFMigrationsHistory";
-                    legacyCount = (int)ExecuteScalarCount(countCmd);
-                }
-
-                LogMigrationRemap(logger, legacyCount);
-
-                using var tx = connection.BeginTransaction();
-                try
-                {
-                    if (!historyTableExists)
-                    {
-                        // History table never existed — create it so we can insert the entry.
-                        using var createCmd = connection.CreateCommand();
-                        createCmd.Transaction = tx;
-                        createCmd.CommandText = @"
-                            CREATE TABLE IF NOT EXISTS __EFMigrationsHistory (
-                                MigrationId TEXT NOT NULL CONSTRAINT PK___EFMigrationsHistory PRIMARY KEY,
-                                ProductVersion TEXT NOT NULL
-                            )";
-                        createCmd.ExecuteNonQuery();
-                    }
-                    else
-                    {
-                        // Remove all legacy entries so there are no orphan rows that could confuse EF.
-                        using var deleteCmd = connection.CreateCommand();
-                        deleteCmd.Transaction = tx;
-                        deleteCmd.CommandText = "DELETE FROM __EFMigrationsHistory";
-                        deleteCmd.ExecuteNonQuery();
-                    }
-
-                    // Record the consolidated migration as already applied.
-                    using var insertCmd = connection.CreateCommand();
-                    insertCmd.Transaction = tx;
-                    insertCmd.CommandText =
-                        "INSERT OR IGNORE INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES (@id, @ver)";
-                    var idParam = insertCmd.CreateParameter();
-                    idParam.ParameterName = "@id";
-                    idParam.Value = ConsolidatedMigrationId;
-                    insertCmd.Parameters.Add(idParam);
-                    var verParam = insertCmd.CreateParameter();
-                    verParam.ParameterName = "@ver";
-                    verParam.Value = "10.0.0";
-                    insertCmd.Parameters.Add(verParam);
-                    insertCmd.ExecuteNonQuery();
-
-                    tx.Commit();
-                }
-                catch
-                {
-                    tx.Rollback();
-                    throw;
-                }
-
-                // Add any columns that were introduced in InitialCreate but never existed in the
-                // old incremental migrations (e.g. CustomerName added to Booking in the squash PR).
-                AddColumnIfMissing(connection, "Bookings", "CustomerName", "TEXT NULL");
-            }
-            finally
-            {
-                // Restore connection to its original state so EF's Migrate() isn't surprised.
-                if (weOpenedConnection)
-                {
-                    connection.Close();
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // Non-fatal: if the remap fails, Migrate() will surface a clearer error.
-#pragma warning disable CA1848 // One-off log call, LoggerMessage not needed here
-            logger.LogWarning(ex, "Could not remap legacy migration history. Proceeding anyway.");
-#pragma warning restore CA1848
-        }
-    }
-
-    private static void AddColumnIfMissing(System.Data.Common.DbConnection connection, string table, string column, string definition)
-    {
-        using var checkCmd = connection.CreateCommand();
-        checkCmd.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name='{column}'";
-        var exists = ExecuteScalarCount(checkCmd) > 0;
-        if (!exists)
-        {
-            using var alterCmd = connection.CreateCommand();
-            alterCmd.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {definition}";
-            alterCmd.ExecuteNonQuery();
-        }
-    }
-
-    public static string GetAppConnectionString(this IConfiguration configuration, IWebHostEnvironment env)
+    public static string GetAppConnectionString(this IConfiguration configuration)
     {
         string? connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? Environment.GetEnvironmentVariable("CONNECTION_STRING");
+            ?? Environment.GetEnvironmentVariable(ConnectionStringEnvVar);
 
-        if (string.IsNullOrEmpty(connectionString))
+        if (string.IsNullOrWhiteSpace(connectionString))
         {
-            string dbPath = env.IsDevelopment() ? "./openresto.db" : "/data/openresto.db";
-            connectionString = $"Data Source={dbPath}";
+            throw new InvalidOperationException(
+                $"No PostgreSQL connection string configured. Set '{ConnectionStringKey}' in configuration "
+                + $"or the {ConnectionStringEnvVar} environment variable.");
         }
 
         return connectionString;
@@ -233,16 +44,13 @@ public static partial class DatabaseExtensions
 
     public static IServiceCollection AddDatabaseSetup(this IServiceCollection services, string connectionString, IWebHostEnvironment env)
     {
-        SqlitePragmaInterceptor pragmaInterceptor = new();
-
         services.AddDbContext<AppDbContext>(options =>
         {
-            options.UseSqlite(connectionString, sqliteOptions =>
+            options.UseNpgsql(connectionString, npgsql =>
             {
-                sqliteOptions.CommandTimeout(30);
-                sqliteOptions.ExecutionStrategy(d => new SqliteRetryingExecutionStrategy(d));
+                npgsql.CommandTimeout(30);
+                npgsql.EnableRetryOnFailure();
             });
-            options.AddInterceptors(pragmaInterceptor);
             options.ConfigureWarnings(w =>
                 w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.MultipleCollectionIncludeWarning));
             options.EnableSensitiveDataLogging(env.IsDevelopment());
@@ -252,64 +60,18 @@ public static partial class DatabaseExtensions
         return services;
     }
 
-    /// <summary>
-    /// Logs DB file sizes (main + WAL + SHM sidecars), current journal mode, and the result of
-    /// <c>PRAGMA integrity_check</c>. Pure diagnostic — never mutates state. Used to root-cause
-    /// the recurring "database disk image is malformed" symptom seen after dotnet-watch kills.
-    /// </summary>
-    private static void DiagnoseDbState(AppDbContext db, string? dbFile, ILogger logger)
-    {
-        // File sizes — these reveal whether a stale/partial WAL or SHM is present, which is the
-        // usual fingerprint of an interrupted shutdown.
-        long mainBytes = 0, walBytes = 0;
-        bool walExists = false, shmExists = false;
-
-        if (!string.IsNullOrEmpty(dbFile))
-        {
-            string main = Path.GetFullPath(dbFile);
-            string wal = main + "-wal";
-            string shm = main + "-shm";
-            try { if (File.Exists(main)) mainBytes = new FileInfo(main).Length; } catch { /* read-only fs */ }
-            try { walExists = File.Exists(wal); if (walExists) walBytes = new FileInfo(wal).Length; } catch { }
-            try { shmExists = File.Exists(shm); } catch { }
-        }
-
-        string journalMode;
-        try
-        {
-            journalMode = db.Database.SqlQueryRaw<string>("PRAGMA journal_mode").ToList().FirstOrDefault() ?? "unknown";
-        }
-        catch (Exception ex)
-        {
-            journalMode = "error: " + ex.Message;
-        }
-
-        LogDbDiagnostics(logger, mainBytes, walExists, walBytes, shmExists, journalMode);
-
-        // integrity_check returns one row per problem; "ok" (single row) means healthy.
-        try
-        {
-            List<string> rows = db.Database.SqlQueryRaw<string>("PRAGMA integrity_check").ToList();
-            string result = rows.Count == 0 ? "(no rows)" : string.Join(" | ", rows);
-            if (result == "ok")
-            {
-                LogIntegrityOk(logger, result);
-            }
-            else
-            {
-                // Any non-"ok" output means structural damage. Capture it at Critical so it's
-                // impossible to miss in logs next time the symptom recurs.
-                LogIntegrityFailed(logger, result);
-            }
-        }
-        catch (Exception ex)
-        {
-            // integrity_check itself threw (often the malformed error itself) — record that too.
-            LogIntegrityFailed(logger, $"integrity_check threw: {ex.GetType().Name}: {ex.Message}");
-        }
-    }
-
     public static void InitializeDatabase(this WebApplication app, string connectionString, IConfiguration configuration)
+        => app.InitializeDatabase(connectionString, configuration, StartupMaxRetries, StartupRetryDelay);
+
+    [OnlyAccessibleBy("OpenRestoApi.Extensions.*")]
+    [OnlyAccessibleBy("OpenRestoApi.Tests.Extensions.InitializeDatabaseTests")]
+    [ExternalAccessAllowed]
+    internal static void InitializeDatabase(
+        this WebApplication app,
+        string connectionString,
+        IConfiguration configuration,
+        int maxRetries,
+        TimeSpan retryDelay)
     {
         using IServiceScope scope = app.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -318,118 +80,32 @@ public static partial class DatabaseExtensions
         try
         {
             LogStartupDiagnostics(logger);
-            LogConnectionString(logger, connectionString);
-            LogCurrentUser(logger, Environment.UserName);
+            LogTarget(logger, connectionString);
 
-            // Docker volume mounts hand us the mount point, not the path inside it.
-            string dbFile = connectionString;
-            if (connectionString.Contains(';'))
-            {
-                var parts = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
-                var ds = parts.FirstOrDefault(p => p.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase));
-                if (ds != null)
-                {
-                    dbFile = ds.Substring("Data Source=".Length);
-                }
-            }
-            else if (connectionString.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase))
-            {
-                dbFile = connectionString.Substring("Data Source=".Length);
-            }
-
-            if (!string.IsNullOrEmpty(dbFile))
-            {
-                string fullPath = Path.GetFullPath(dbFile);
-                string? dir = Path.GetDirectoryName(fullPath);
-                LogResolvedDbPath(logger, fullPath);
-                if (dir != null)
-                {
-                    bool dirExists = Directory.Exists(dir);
-                    LogDbDirectoryInfo(logger, dir, dirExists);
-                    if (!dirExists)
-                    {
-                        try { Directory.CreateDirectory(dir); LogCreatedDbDirectory(logger, dir); }
-                        catch (Exception ex) { LogFailedToCreateDbDirectory(logger, ex.Message); }
-                    }
-                    else
-                    {
-                        try
-                        {
-                            string testFile = Path.Combine(dir, ".write-test-" + Guid.NewGuid().ToString("N"));
-                            File.WriteAllText(testFile, "test");
-                            File.Delete(testFile);
-                            LogDbDirectoryWritable(logger);
-                        }
-                        catch (Exception ex) { LogDbDirectoryNotWritable(logger, ex.Message); }
-                    }
-                }
-            }
-
-            // Flush any WAL frames left by a previous abrupt shutdown (e.g. dotnet watch restart).
-            // Runs before Migrate() so the schema it sees is fully consistent.
-            if (db.Database.CanConnect())
-            {
-                try { db.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint(TRUNCATE)"); }
-                catch { /* non-fatal */ }
-
-                // DIAGNOSTICS: capture DB file state + integrity before any further work, so we
-                // can tell *why* it later fails (e.g. "database disk image is malformed") after
-                // an abrupt dotnet-watch kill. Pure logging, no behavior change.
-                DiagnoseDbState(db, dbFile, logger);
-            }
-
-            // Checkpoint WAL on graceful shutdown so the next dotnet watch restart finds a clean slate.
-            app.Lifetime.ApplicationStopping.Register(() =>
-            {
-                try
-                {
-                    using IServiceScope stopScope = app.Services.CreateScope();
-                    AppDbContext stopDb = stopScope.ServiceProvider.GetRequiredService<AppDbContext>();
-                    stopDb.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint(TRUNCATE)");
-                }
-                catch { /* best-effort */ }
-            });
-
-            // Squash migration history: if the DB still has the old incremental migration IDs
-            // (from before the consolidation into InitialCreate), replace them all with the
-            // single consolidated migration so EF doesn't try to CREATE already-existing tables.
-            RemapLegacyMigrationHistory(db, logger);
-
-            // Apply any pending EF migrations (creates DB on first run, adds columns on upgrade)
-            int maxRetries = 10;
-            int retryDelayMs = 2000;
             bool success = false;
-
-            for (int i = 1; i <= maxRetries; i++)
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
                 try
                 {
-                    db.Database.Migrate();
-
+                    ApplySchema(db);
                     DbSeeder.Seed(db);
-
-                    // Reuse the canonical IPasswordService PBKDF2 implementation (100k iters,
-                    // SHA256, 32-byte hash, 16-byte salt, Base64) instead of an inline duplicate.
-                    using (IServiceScope seedScope = app.Services.CreateScope())
-                    {
-                        AdminBootstrap.EnsureInitialOwner(
-                            db,
-                            configuration,
-                            seedScope.ServiceProvider.GetRequiredService<OpenRestoApi.Core.Application.Interfaces.IPasswordService>());
-                    }
+                    AdminBootstrap.EnsureInitialOwner(
+                        db,
+                        configuration,
+                        scope.ServiceProvider.GetRequiredService<OpenRestoApi.Core.Application.Interfaces.IPasswordService>());
 
                     success = true;
                     break;
                 }
-                catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.SqliteErrorCode == 8 || ex.SqliteErrorCode == 14 || ex.SqliteErrorCode == 5)
+                catch (Exception ex) when (IsTransientStartupFailure(ex))
                 {
-                    LogDatabaseRetry(logger, ex.SqliteErrorCode, i, maxRetries, retryDelayMs);
-                    if (i == maxRetries)
+                    LogDatabaseRetry(logger, ex.GetBaseException().Message, attempt, maxRetries, (int)retryDelay.TotalMilliseconds);
+                    if (attempt == maxRetries)
                     {
                         throw;
                     }
 
-                    Thread.Sleep(retryDelayMs);
+                    Thread.Sleep(retryDelay);
                 }
             }
 
@@ -442,11 +118,55 @@ public static partial class DatabaseExtensions
         }
     }
 
-    // The loop above can only fall through to here with success == true: every matched
-    // SqliteException either sleeps and continues (i < maxRetries) or rethrows (i ==
-    // maxRetries), and any unmatched exception propagates immediately. This guard can
-    // never actually fire — kept as a defensive invariant check rather than a silent
-    // assumption, so it's excluded from coverage rather than chased with a contrived test.
+    /// <summary>
+    /// Migrations on PostgreSQL. The in-memory provider has no migrations and is only ever reached
+    /// by <c>tools/OpenApiExport</c>, which boots the app to read its contract without a database.
+    /// </summary>
+    private static void ApplySchema(AppDbContext db)
+    {
+        if (db.Database.IsRelational())
+        {
+            db.Database.Migrate();
+        }
+        else
+        {
+            db.Database.EnsureCreated();
+        }
+    }
+
+    /// <summary>
+    /// Only the host and database are logged: the connection string carries the password.
+    /// </summary>
+    private static void LogTarget(ILogger logger, string connectionString)
+    {
+        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+        LogDatabaseTarget(logger, builder.Database, builder.Host, builder.Port, builder.Username);
+    }
+
+    /// <summary>
+    /// A database that is still starting (compose brings the backend up beside it) refuses
+    /// connections or answers <c>57P03 cannot_connect_now</c>; both clear on their own, so startup
+    /// waits rather than failing. Anything else, a bad password included, fails at once.
+    /// </summary>
+    [OnlyAccessibleBy("OpenRestoApi.Extensions.*")]
+    [OnlyAccessibleBy("OpenRestoApi.Tests.Extensions.InitializeDatabaseTests")]
+    [ExternalAccessAllowed]
+    internal static bool IsTransientStartupFailure(Exception ex)
+    {
+        for (Exception? current = ex; current is not null; current = current.InnerException)
+        {
+            if (current is SocketException || (current is NpgsqlException npgsql && npgsql.IsTransient))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // The loop above can only fall through to here with success == true: every transient failure
+    // either sleeps and continues (attempt < maxRetries) or rethrows (attempt == maxRetries), and
+    // anything else propagates immediately.
     [ExcludeFromCodeCoverage(Justification = "Unreachable: the retry loop above always either sets success=true or throws before falling through.")]
     private static void ThrowIfRetriesExhausted(bool success)
     {

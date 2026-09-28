@@ -1,5 +1,4 @@
 using System.Net;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -16,25 +15,22 @@ namespace OpenRestoApi.Tests.Services;
 
 public class BookingNotificationServiceTests : IDisposable
 {
-    private readonly SqliteConnection _connection;
+    private readonly PostgresTestDatabase _database = PostgresTestDatabase.Acquire();
     private readonly AppDbContext _db;
     private readonly Mock<IWebPushClient> _webPushClientMock = new();
 
     public BookingNotificationServiceTests()
     {
-        _connection = new SqliteConnection("Data Source=:memory:");
-        _connection.Open();
         DbContextOptions<AppDbContext> opts = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(_connection)
+            .UseNpgsql(_database.ConnectionString)
             .Options;
         _db = new AppDbContext(opts);
-        _db.Database.EnsureCreated();
     }
 
     public void Dispose()
     {
         _db.Dispose();
-        _connection.Dispose();
+        _database.Dispose();
         GC.SuppressFinalize(this);
     }
 

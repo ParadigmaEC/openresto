@@ -9,11 +9,6 @@
          server against a new CLI. Bump alongside package.json on every release —
          scripts/check-release-version.sh enforces the two agree. -->
     <Version>2.3.0</Version>
-    <!-- Exclude the local SQLite DB + its WAL/SHM sidecars from dotnet watch.
-         SQLite writes to -wal/-shm on every transaction; if watch sees those as
-         source changes it restarts the process mid-write and corrupts the main
-         .db file (SQLite Error 11: 'database disk image is malformed'). -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);*.db;*.db-shm;*.db-wal;*.db-journal</DefaultItemExcludes>
     <UserSecretsId>acbf8cd0-5851-4d3a-9193-a4fd65de8196</UserSecretsId>
   </PropertyGroup>
 
@@ -26,7 +21,8 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
 <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12" PrivateAssets="all" />
     <!-- Microsoft.EntityFrameworkCore.Design 10.0.11 depends on these at 5.0.0, which pins
          Microsoft.CodeAnalysis.Workspaces.Common to an exact [5.0.0], while

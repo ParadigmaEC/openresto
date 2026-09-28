@@ -40,7 +40,8 @@ public class AdminService(
     BrandService? brandService = null,
     INotificationQueue? notificationQueue = null,
     IAuditScope? audit = null,
-    ICurrentUserService? currentUser = null)
+    ICurrentUserService? currentUser = null,
+    IBookingWriteLock? writeLock = null)
 {
     /// <summary>
     /// Castle's generated proxy constructors drop default values, so a Moq class mock reaches only
@@ -57,11 +58,12 @@ public class AdminService(
         BrandService? brand,
         INotificationQueue? notifications)
         : this(bookings, bookingFilters, restaurants, sections, tables, holds, email, brand,
-            notifications, null, null)
+            notifications, null, null, null)
     { }
 
     private readonly IAuditScope _audit = audit ?? NullAuditScope.Instance;
     private readonly ICurrentUserService _currentUser = currentUser ?? NullCurrentUserService.Instance;
+    private readonly IBookingWriteLock _writeLock = writeLock ?? NoBookingWriteLock.Instance;
     private readonly IBookingRepository _bookingRepository = bookingRepository;
     private readonly IBookingFilterRepository _bookingFilterRepository = bookingFilterRepository;
     private readonly IRestaurantRepository _restaurantRepository = restaurantRepository;
@@ -339,8 +341,31 @@ public class AdminService(
         DateTime newStart = TimeZoneHelper.ConvertLocalToUtc(req.Date, table.Section.Restaurant!.Timezone);
 
         int durationMinutes = BookingDuration.For(table.Section.Restaurant, req.Seats);
-        DateTime newEnd = newStart.AddMinutes(durationMinutes);
 
+        Booking booking = await _writeLock.RunAsync(req.RestaurantId, () =>
+            WriteAdminBookingAsync(req, table, newStart, durationMinutes, customerPhone));
+
+        Booking? reloaded = await _bookingRepository.GetByIdAsync(booking.Id);
+        if (reloaded != null)
+        {
+            booking = reloaded;
+        }
+
+        if (_notificationQueue != null)
+        {
+            _notificationQueue.EnqueueBookingCreated(booking, booking.Restaurant!.Name);
+            _notificationQueue.EnqueueCapacityCheck(booking.RestaurantId, booking.Restaurant!.Name, booking.Date);
+        }
+
+        DescribeBooking(AuditActions.BookingCreate, booking,
+            $"Created booking {booking.BookingRef} for {booking.Seats} guests");
+        return ToDetailDto(booking);
+    }
+
+    private async Task<Booking> WriteAdminBookingAsync(
+        AdminCreateBookingRequest req, Table table, DateTime newStart, int durationMinutes, string customerPhone)
+    {
+        DateTime newEnd = newStart.AddMinutes(durationMinutes);
         bool conflict = await _bookingRepository.HasConflictAsync(req.TableId, newStart, newEnd, durationMinutes);
 
         if (conflict)
@@ -364,26 +389,10 @@ public class AdminService(
             CustomerName = req.CustomerName,
             CustomerPhone = customerPhone,
             Seats = req.Seats,
-            BookingRef = BookingRefFactory.GenerateFor(table.Section.Restaurant),
+            BookingRef = BookingRefFactory.GenerateFor(table.Section!.Restaurant!),
         };
 
-        await _bookingRepository.AddAsync(booking);
-
-        Booking? reloaded = await _bookingRepository.GetByIdAsync(booking.Id);
-        if (reloaded != null)
-        {
-            booking = reloaded;
-        }
-
-        if (_notificationQueue != null)
-        {
-            _notificationQueue.EnqueueBookingCreated(booking, booking.Restaurant!.Name);
-            _notificationQueue.EnqueueCapacityCheck(booking.RestaurantId, booking.Restaurant!.Name, booking.Date);
-        }
-
-        DescribeBooking(AuditActions.BookingCreate, booking,
-            $"Created booking {booking.BookingRef} for {booking.Seats} guests");
-        return ToDetailDto(booking);
+        return await _bookingRepository.AddAsync(booking);
     }
 
     public virtual async Task<DateTime?> ExtendBookingAsync(int id, int minutes)
@@ -401,8 +410,12 @@ public class AdminService(
             booking.Date, booking.EndTime, restaurant?.DefaultBookingDurationMinutes);
 
         DateTime? previousEnd = booking.EndTime;
-        booking.EndTime = from.AddMinutes(minutes);
-        await _bookingRepository.UpdateAsync(booking);
+        await _writeLock.RunAsync(booking.RestaurantId, async () =>
+        {
+            booking.EndTime = from.AddMinutes(minutes);
+            await _bookingRepository.UpdateAsync(booking);
+            return true;
+        });
 
         _audit.RecordChange("endTime", previousEnd, booking.EndTime);
         DescribeBooking(AuditActions.BookingExtend, booking,
@@ -466,9 +479,13 @@ public class AdminService(
             throw new BusinessRuleException("Booking is already active.") { Code = ErrorCodes.BookingAlreadyActive };
         }
 
-        booking.IsCancelled = false;
-        booking.CancelledAt = null;
-        await _bookingRepository.UpdateAsync(booking);
+        await _writeLock.RunAsync(booking.RestaurantId, async () =>
+        {
+            booking.IsCancelled = false;
+            booking.CancelledAt = null;
+            await _bookingRepository.UpdateAsync(booking);
+            return true;
+        });
 
         DescribeBooking(AuditActions.BookingRestore, booking,
             $"Restored cancelled booking {booking.BookingRef}");
@@ -485,7 +502,29 @@ public class AdminService(
         }
 
         BookingFields before = BookingFields.From(booking);
+        int targetRestaurantId = req.RestaurantId ?? booking.RestaurantId;
 
+        await _writeLock.RunAsync(targetRestaurantId, async () =>
+        {
+            await WriteAdminUpdateAsync(booking, before, id, req);
+            return true;
+        });
+
+        RecordBookingChanges(before, BookingFields.From(booking));
+        DescribeBooking(AuditActions.BookingUpdate, booking, $"Updated booking {booking.BookingRef}");
+
+        // Reloaded through the eager-loading read so the DTO carries the updated names.
+        Booking? reloaded = await _bookingRepository.GetByIdAsync(id);
+        return reloaded == null ? ToDetailDto(booking) : ToDetailDto(reloaded);
+    }
+
+    /// <summary>
+    /// The edit itself, under the write lock of the restaurant the booking ends up at: the move
+    /// check reads that restaurant's bookings, so the write it guards has to follow it before
+    /// anyone else's.
+    /// </summary>
+    private async Task WriteAdminUpdateAsync(Booking booking, BookingFields before, int id, AdminUpdateBookingRequest req)
+    {
         Restaurant? restaurant = booking.Restaurant;
         if (req.RestaurantId.HasValue && req.RestaurantId.Value != booking.RestaurantId)
         {
@@ -557,13 +596,6 @@ public class AdminService(
         }
 
         await _bookingRepository.UpdateAsync(booking);
-
-        RecordBookingChanges(before, BookingFields.From(booking));
-        DescribeBooking(AuditActions.BookingUpdate, booking, $"Updated booking {booking.BookingRef}");
-
-        // Reloaded through the eager-loading read so the DTO carries the updated names.
-        Booking? reloaded = await _bookingRepository.GetByIdAsync(id);
-        return reloaded == null ? ToDetailDto(booking) : ToDetailDto(reloaded);
     }
 
     /// <summary>
@@ -774,17 +806,21 @@ public class AdminService(
 
         DateTime nowUtc = DateTime.UtcNow;
 
-        List<Booking> activeBookings = await _bookingRepository.GetInProgressForRestaurantAsync(restaurantId, nowUtc, restaurant.DefaultBookingDurationMinutes);
-
-        foreach (Booking? booking in activeBookings)
+        List<Booking> activeBookings = await _writeLock.RunAsync(restaurantId, async () =>
         {
-            DateTime currentEndTime = booking.EndTime ?? booking.Date.AddMinutes(restaurant.DefaultBookingDurationMinutes);
-            booking.EndTime = currentEndTime.AddMinutes(extensionMinutes);
-        }
+            List<Booking> inProgress = await _bookingRepository.GetInProgressForRestaurantAsync(restaurantId, nowUtc, restaurant.DefaultBookingDurationMinutes);
 
-        // Single SaveChanges flushes every mutated EndTime — same DB round-trip count as the
-        // original implementation. The entities are already tracked on the shared DI-scoped DbContext.
-        await _bookingRepository.SaveChangesAsync();
+            foreach (Booking? booking in inProgress)
+            {
+                DateTime currentEndTime = booking.EndTime ?? booking.Date.AddMinutes(restaurant.DefaultBookingDurationMinutes);
+                booking.EndTime = currentEndTime.AddMinutes(extensionMinutes);
+            }
+
+            // Single SaveChanges flushes every mutated EndTime. The entities are already tracked
+            // on the shared DI-scoped DbContext.
+            await _bookingRepository.SaveChangesAsync();
+            return inProgress;
+        });
 
         DescribeRestaurant(AuditActions.RestaurantExtendBookings, restaurant,
             $"Extended {activeBookings.Count} in-progress bookings at {restaurant.Name} by {extensionMinutes} minutes");

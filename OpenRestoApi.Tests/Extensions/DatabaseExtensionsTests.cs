@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
-using Moq;
 using OpenRestoApi.Extensions;
 
 namespace OpenRestoApi.Tests.Extensions;
@@ -13,24 +11,19 @@ public class DatabaseExtensionsTests
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = "ConnStr" })
             .Build();
-        var env = new Mock<IWebHostEnvironment>().Object;
 
-        var result = config.GetAppConnectionString(env);
-
-        Assert.Equal("ConnStr", result);
+        Assert.Equal("ConnStr", config.GetAppConnectionString());
     }
 
     [Fact]
     public void GetAppConnectionString_UsesEnvVar_WhenConfigMissing()
     {
         var config = new ConfigurationBuilder().Build();
-        var env = new Mock<IWebHostEnvironment>().Object;
         Environment.SetEnvironmentVariable("CONNECTION_STRING", "EnvStr");
 
         try
         {
-            var result = config.GetAppConnectionString(env);
-            Assert.Equal("EnvStr", result);
+            Assert.Equal("EnvStr", config.GetAppConnectionString());
         }
         finally
         {
@@ -39,17 +32,14 @@ public class DatabaseExtensionsTests
     }
 
     [Fact]
-    public void GetAppConnectionString_UsesDefault_WhenAllMissing()
+    public void GetAppConnectionString_FailsFast_NamingBothSources_WhenNeitherIsSet()
     {
         var config = new ConfigurationBuilder().Build();
-        var envMock = new Mock<IWebHostEnvironment>();
-        envMock.Setup(e => e.EnvironmentName).Returns("Development");
+        Environment.SetEnvironmentVariable("CONNECTION_STRING", null);
 
-        var result = config.GetAppConnectionString(envMock.Object);
-        Assert.Equal("Data Source=./openresto.db", result);
-        
-        envMock.Setup(e => e.EnvironmentName).Returns("Production");
-        result = config.GetAppConnectionString(envMock.Object);
-        Assert.Equal("Data Source=/data/openresto.db", result);
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => config.GetAppConnectionString());
+
+        Assert.Contains("ConnectionStrings:DefaultConnection", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("CONNECTION_STRING", ex.Message, StringComparison.Ordinal);
     }
 }

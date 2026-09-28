@@ -315,6 +315,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IHoldService, HoldService>();
         services.AddScoped<IHoldPolicyService, HoldPolicyService>();
         services.AddScoped<TableAutoAssigner>();
+        services.AddScoped<IBookingWriteLock, OpenRestoApi.Infrastructure.Persistence.PostgresBookingWriteLock>();
 
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IBookingFilterRepository, BookingFilterRepository>();
@@ -366,7 +367,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<NativeAppStatusService>();
 
         // Native guest-app telemetry: an in-memory counter on the request path, flushed to the
-        // database by a background worker, so no request ever writes to SQLite for a header.
+        // database by a background worker, so no request ever writes to the database for a header.
         services.AddSingleton<INativeClientStatsCollector,
             OpenRestoApi.Infrastructure.NativeClients.NativeClientStatsCollector>();
         services.AddHostedService<OpenRestoApi.Infrastructure.NativeClients.NativeClientStatsWorker>();

@@ -36,7 +36,7 @@ public class RestaurantsControllerTests(TestWebAppFactory factory) : IClassFixtu
 
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        int restaurantId = db.Restaurants.First().Id;
+        int restaurantId = db.Restaurants.OrderBy(r => r.Id).First().Id;
 
         HttpResponseMessage response = await client.GetAsync($"/api/restaurants/{restaurantId}");
 
@@ -110,7 +110,7 @@ public class RestaurantsControllerTests(TestWebAppFactory factory) : IClassFixtu
 
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        int restaurantId = db.Restaurants.First().Id;
+        int restaurantId = db.Restaurants.OrderBy(r => r.Id).First().Id;
 
         HttpResponseMessage response = await client.PostAsJsonAsync($"/api/restaurants/{restaurantId}/sections", new
         {
@@ -130,8 +130,8 @@ public class RestaurantsControllerTests(TestWebAppFactory factory) : IClassFixtu
 
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Restaurant restaurant = db.Restaurants.First();
-        Section section = db.Sections.First(s => s.RestaurantId == restaurant.Id);
+        Restaurant restaurant = db.Restaurants.OrderBy(r => r.Id).First();
+        Section section = db.Sections.OrderBy(s => s.Id).First(s => s.RestaurantId == restaurant.Id);
 
         HttpResponseMessage response = await client.PostAsJsonAsync(
             $"/api/restaurants/{restaurant.Id}/sections/{section.Id}/tables", new
@@ -153,7 +153,7 @@ public class RestaurantsControllerTests(TestWebAppFactory factory) : IClassFixtu
 
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        int restaurantId = db.Restaurants.First().Id;
+        int restaurantId = db.Restaurants.OrderBy(r => r.Id).First().Id;
 
         HttpResponseMessage response = await client.PutAsJsonAsync($"/api/restaurants/{restaurantId}", new
         {
@@ -175,7 +175,7 @@ public class RestaurantsControllerTests(TestWebAppFactory factory) : IClassFixtu
 
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        int restaurantId = db.Restaurants.First().Id;
+        int restaurantId = db.Restaurants.OrderBy(r => r.Id).First().Id;
 
         HttpResponseMessage response = await client.PutAsJsonAsync($"/api/restaurants/{restaurantId}", new
         {
@@ -195,8 +195,8 @@ public class RestaurantsControllerTests(TestWebAppFactory factory) : IClassFixtu
 
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Restaurant restaurant = db.Restaurants.First();
-        Section section = db.Sections.First(s => s.RestaurantId == restaurant.Id);
+        Restaurant restaurant = db.Restaurants.OrderBy(r => r.Id).First();
+        Section section = db.Sections.OrderBy(s => s.Id).First(s => s.RestaurantId == restaurant.Id);
 
         HttpResponseMessage response = await client.PutAsJsonAsync(
             $"/api/restaurants/{restaurant.Id}/sections/{section.Id}", new
@@ -216,9 +216,9 @@ public class RestaurantsControllerTests(TestWebAppFactory factory) : IClassFixtu
 
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Restaurant restaurant = db.Restaurants.First();
-        Section section = db.Sections.First(s => s.RestaurantId == restaurant.Id);
-        Table table = db.Tables.First(t => t.SectionId == section.Id);
+        Restaurant restaurant = db.Restaurants.OrderBy(r => r.Id).First();
+        Section section = db.Sections.OrderBy(s => s.Id).First(s => s.RestaurantId == restaurant.Id);
+        Table table = db.Tables.OrderBy(t => t.Id).First(t => t.SectionId == section.Id);
 
         HttpResponseMessage response = await client.PutAsJsonAsync(
             $"/api/restaurants/{restaurant.Id}/sections/{section.Id}/tables/{table.Id}", new
@@ -241,8 +241,8 @@ public class RestaurantsControllerTests(TestWebAppFactory factory) : IClassFixtu
         // First, add a table to delete
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Restaurant restaurant = db.Restaurants.First();
-        Section section = db.Sections.First(s => s.RestaurantId == restaurant.Id);
+        Restaurant restaurant = db.Restaurants.OrderBy(r => r.Id).First();
+        Section section = db.Sections.OrderBy(s => s.Id).First(s => s.RestaurantId == restaurant.Id);
 
         HttpResponseMessage addResp = await client.PostAsJsonAsync(
             $"/api/restaurants/{restaurant.Id}/sections/{section.Id}/tables", new
@@ -266,7 +266,7 @@ public class RestaurantsControllerTests(TestWebAppFactory factory) : IClassFixtu
 
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Restaurant restaurant = db.Restaurants.First();
+        Restaurant restaurant = db.Restaurants.OrderBy(r => r.Id).First();
 
         // Add a section to delete
         HttpResponseMessage addResp = await client.PostAsJsonAsync(
