@@ -2,7 +2,7 @@ namespace OpenRestoApi.Core.Application.Settings;
 
 /// <summary>
 /// Bound from the <c>Audit</c> configuration section. Self-hosters keep this table in the same
-/// SQLite file as everything else, so it has to have an end — without a retention pass the log
+/// database as everything else, so it has to have an end — without a retention pass the log
 /// grows forever on an instance nobody ever looks at, and the GDPR position gets worse over time
 /// rather than better.
 /// </summary>

@@ -51,6 +51,19 @@ describe("BookingDetailsCard", () => {
     expect(screen.getByText("CANCELLED")).toBeTruthy();
   });
 
+  it("shows the guest's phone spaced for reading", () => {
+    render(
+      <BookingDetailsCard {...props} booking={{ ...mockBooking, customerPhone: "+593991234567" }} />
+    );
+    expect(screen.getByText("Phone")).toBeTruthy();
+    expect(screen.getByText("+593 99 123 4567")).toBeTruthy();
+  });
+
+  it("leaves the phone row out for a booking taken before it was required", () => {
+    render(<BookingDetailsCard {...props} booking={{ ...mockBooking, customerPhone: null }} />);
+    expect(screen.queryByText("Phone")).toBeNull();
+  });
+
   it("shows the guest's previous no-shows", () => {
     render(<BookingDetailsCard {...props} booking={{ ...mockBooking, previousNoShows: 1 }} />);
     expect(screen.getByText("1 previous no-show")).toBeTruthy();

@@ -4,7 +4,13 @@ import { useTranslation } from "react-i18next";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import Button from "@/components/common/Button";
-import { EmailField, GuestsField, NameField } from "@/components/booking/BookingFormFields";
+import {
+  EmailField,
+  GuestsField,
+  NameField,
+  PhoneField,
+} from "@/components/booking/BookingFormFields";
+import { EMPTY_PHONE, phoneE164, type PhoneValue } from "@/components/common/PhoneInput";
 import { styles as drawerStyles } from "@/components/booking/BookingDrawer.styles";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import { useLocale } from "@/context/LocaleContext";
@@ -51,6 +57,7 @@ export default function JoinWaitlistForm({
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState<PhoneValue>(EMPTY_PHONE);
   const [push, setPush] = useState<ReminderRegistration | null>(null);
   const [quote, setQuote] = useState<WaitlistQuote | null | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
@@ -67,8 +74,12 @@ export default function JoinWaitlistForm({
   }, [restaurantId, seats]);
 
   const trimmedEmail = email.trim();
+  const e164 = phoneE164(phone);
   const canSubmit =
-    !submitting && name.trim().length > 0 && (trimmedEmail === "" || isValidEmail(trimmedEmail));
+    !submitting &&
+    name.trim().length > 0 &&
+    !!e164 &&
+    (trimmedEmail === "" || isValidEmail(trimmedEmail));
 
   const submit = async () => {
     setSubmitting(true);
@@ -77,6 +88,7 @@ export default function JoinWaitlistForm({
       name: name.trim(),
       seats,
       email: trimmedEmail || undefined,
+      phone: e164!,
       locale,
     });
     if (result.ok) {
@@ -142,6 +154,7 @@ export default function JoinWaitlistForm({
         onChange={onSeatsChange}
       />
       <NameField value={name} onChange={setName} />
+      <PhoneField value={phone} onChange={setPhone} />
       <EmailField label={t("booking.waitlist.emailLabel")} value={email} onChange={setEmail} />
       <WaitlistPushOptIn registration={push} onChange={setPush} />
       {error && (

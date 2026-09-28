@@ -110,9 +110,9 @@ internal class BookingFilterRepository(AppDbContext db) : IBookingFilterReposito
 
         if (!string.IsNullOrWhiteSpace(filter.Email))
         {
-            // SQLite EF Core cannot translate StringComparison overloads — use ToLower for case-insensitive LIKE
+            // StringComparison overloads do not translate and PostgreSQL's LIKE is case-sensitive,
+            // so both sides are lowered (AdminServiceTests.GetBookingsAsync_EmailFilter_IsCaseInsensitiveAndPartial).
             string normalizedEmail = filter.Email.Trim().ToLowerInvariant();
-            // EF Core maps ToLower() → SQLite lower(), which is locale-independent at the DB level
 #pragma warning disable CA1862, CA1311, CA1304 // ToLower in LINQ-to-EF is intentional (ToLowerInvariant is not translatable)
             q = q.Where(b => b.CustomerEmail != null && b.CustomerEmail.ToLower().Contains(normalizedEmail));
 #pragma warning restore CA1862, CA1311, CA1304
@@ -129,10 +129,12 @@ internal class BookingFilterRepository(AppDbContext db) : IBookingFilterReposito
         if (!string.IsNullOrWhiteSpace(filter.Query))
         {
             string normalizedQuery = filter.Query.Trim().ToLowerInvariant();
+            string phoneQuery = string.Concat(normalizedQuery.Where(c => !char.IsWhiteSpace(c) && c is not ('-' or '.' or '(' or ')')));
 #pragma warning disable CA1862, CA1311, CA1304
             q = q.Where(b =>
                 (b.CustomerName != null && b.CustomerName.ToLower().Contains(normalizedQuery))
                 || (b.CustomerEmail != null && b.CustomerEmail.ToLower().Contains(normalizedQuery))
+                || (phoneQuery.Length > 0 && b.CustomerPhone != null && b.CustomerPhone.Contains(phoneQuery))
                 || (b.BookingRef != null && b.BookingRef.ToLower().Contains(normalizedQuery)));
 #pragma warning restore CA1862, CA1311, CA1304
         }

@@ -27,6 +27,8 @@ export const styles = StyleSheet.create({
   },
   addField: { flexGrow: 1, flexBasis: 180, minWidth: 140 },
   addSeats: { flexBasis: 140, flexGrow: 0 },
+  /** The dial-code picker and the number side by side, before the row wraps them. */
+  addPhone: { flexBasis: 320 },
   field: { gap: theme.spacing.xs },
   label: { ...theme.typography.label },
   list: {

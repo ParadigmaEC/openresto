@@ -19,12 +19,26 @@ jobs:
   migration-check:
     name: EF Core Migration Safety
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       # Needed if EF design-time tooling invokes the app host
       ADMIN_PASSWORD: ci-migration-check-password
       JWT_KEY: ci-migration-check-jwt-key-must-be-32-chars-long
-      CONNECTION_STRING: "Data Source=/tmp/ef-tools.db"
+      CONNECTION_STRING: "Host=localhost;Port=5432;Database=ef_tools;Username=postgres;Password=postgres"
       ASPNETCORE_ENVIRONMENT: Development
+      # psql/pg_dump run inside the service container so the client matches the server
+      # version; the runner's own pg_dump refuses a newer server.
+      PG_CONTAINER: ${{ job.services.postgres.id }}
 
     steps:
       - uses: actions/checkout@v7
@@ -130,62 +144,60 @@ jobs:
           echo "=== Upgrade SQL preview (first 40 lines) ==="
           head -40 /tmp/upgrade-only.sql
 
-      - name: Install SQLite
+      - name: Create databases
         if: steps.detect.outputs.has_new_migrations == 'true'
-        run: sudo apt-get install -y --no-install-recommends sqlite3
+        run: |
+          for db in fresh upgrade; do
+            docker exec "$PG_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE $db;"
+          done
 
       - name: Test fresh install (all migrations on empty DB)
         if: steps.detect.outputs.has_new_migrations == 'true'
         run: |
-          sqlite3 /tmp/fresh.db < /tmp/all-migrations.sql
+          PSQL="docker exec -i $PG_CONTAINER psql -U postgres -X -v ON_ERROR_STOP=1"
+          $PSQL -q -d fresh < /tmp/all-migrations.sql
           echo "=== Fresh install: tables ==="
-          sqlite3 /tmp/fresh.db ".tables"
+          $PSQL -d fresh -c '\dt'
           echo "=== Fresh install: migration history ==="
-          sqlite3 /tmp/fresh.db \
-            "SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId;"
+          $PSQL -d fresh -c 'SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY 1;'
 
       - name: Test upgrade path (baseline → new migrations, against data)
         if: >
           steps.detect.outputs.has_new_migrations == 'true' &&
           steps.detect.outputs.baseline_migration != ''
         run: |
+          PSQL="docker exec -i $PG_CONTAINER psql -U postgres -X -v ON_ERROR_STOP=1"
+
           # Create a database representing an existing install at the baseline version
-          sqlite3 /tmp/upgrade.db < /tmp/baseline-migrations.sql
-          echo "=== Pre-upgrade: tables ==="
-          sqlite3 /tmp/upgrade.db ".tables"
+          $PSQL -q -d upgrade < /tmp/baseline-migrations.sql
           echo "=== Pre-upgrade: migration history ==="
-          sqlite3 /tmp/upgrade.db \
-            "SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId;"
+          $PSQL -d upgrade -c 'SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY 1;'
 
-          # A real install has rows, and some statements SQLite accepts against an empty table
-          # it rejects against a populated one — ADD COLUMN with a non-constant default being
-          # the one that shipped and broke a deploy. Without this the job only proves the two
-          # paths agree on schema, never that a migration can run at all.
+          # A real install has rows, and some statements PostgreSQL accepts against an empty
+          # table it rejects against a populated one — ADD COLUMN ... NOT NULL without a
+          # default being the usual one. Without this the job only proves the two paths agree
+          # on schema, never that a migration can run at all.
           echo "=== Seeding fixture rows ==="
-          python3 scripts/fill-schema-fixture.py /tmp/upgrade.db
+          PSQL="docker exec -i $PG_CONTAINER psql -U postgres" python3 scripts/fill-schema-fixture.py upgrade
 
-          sqlite3 /tmp/upgrade.db \
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != '__EFMigrationsHistory' ORDER BY name;" \
-            > /tmp/pre-upgrade-tables.txt
+          TABLES_SQL="SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '__EFMigrationsHistory' ORDER BY 1;"
+          $PSQL -At -d upgrade -c "$TABLES_SQL" > /tmp/pre-upgrade-tables.txt
           while read -r t; do
-            printf '%s\t%s\n' "$t" "$(sqlite3 /tmp/upgrade.db "SELECT COUNT(*) FROM \"$t\";")"
+            printf '%s\t%s\n' "$t" "$($PSQL -At -d upgrade -c "SELECT COUNT(*) FROM \"$t\";")"
           done < /tmp/pre-upgrade-tables.txt > /tmp/pre-upgrade-counts.txt
 
           # Apply only the new migrations (simulates an in-place upgrade)
-          sqlite3 /tmp/upgrade.db < /tmp/upgrade-only.sql
-          echo "=== Post-upgrade: tables ==="
-          sqlite3 /tmp/upgrade.db ".tables"
+          $PSQL -q -d upgrade < /tmp/upgrade-only.sql
           echo "=== Post-upgrade: migration history ==="
-          sqlite3 /tmp/upgrade.db \
-            "SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId;"
+          $PSQL -d upgrade -c 'SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY 1;'
 
-          # A migration may legitimately rebuild a table (SQLite has no ALTER COLUMN), but it
-          # must carry the rows across. Dropping them is silent data loss on every self-hosted
-          # install, and the schema diff below cannot see it.
+          # A migration may legitimately rebuild a table, but it must carry the rows across.
+          # Dropping them is silent data loss on every install, and the schema diff below
+          # cannot see it.
           echo "=== Row counts: before → after ==="
           LOST=0
           while IFS=$'\t' read -r t before; do
-            after="$(sqlite3 /tmp/upgrade.db "SELECT COUNT(*) FROM \"$t\";" 2>/dev/null || echo MISSING)"
+            after="$($PSQL -At -d upgrade -c "SELECT COUNT(*) FROM \"$t\";" 2>/dev/null || echo MISSING)"
             echo "  $t: $before → $after"
             if [ "$after" = "MISSING" ]; then
               # A dropped table is fine if the migration meant it; flag it rather than fail.
@@ -207,11 +219,14 @@ jobs:
           steps.detect.outputs.has_new_migrations == 'true' &&
           steps.detect.outputs.baseline_migration != ''
         run: |
-          # Exclude the migrations history table itself — its rows differ by design
-          sqlite3 /tmp/fresh.db ".schema" \
-            | grep -v "__EFMigrationsHistory" | sort > /tmp/fresh-schema.txt
-          sqlite3 /tmp/upgrade.db ".schema" \
-            | grep -v "__EFMigrationsHistory" | sort > /tmp/upgraded-schema.txt
+          # Comments and pg_dump's per-run \restrict token differ by design; the history
+          # table's rows are not in a schema-only dump at all.
+          dump_schema() {
+            docker exec "$PG_CONTAINER" pg_dump -U postgres --schema-only --no-owner --no-privileges -d "$1" \
+              | grep -v -e '^--' -e '^\restrict' -e '^\unrestrict' | sed '/^$/d'
+          }
+          dump_schema fresh > /tmp/fresh-schema.txt
+          dump_schema upgrade > /tmp/upgraded-schema.txt
 
           if diff -u /tmp/fresh-schema.txt /tmp/upgraded-schema.txt; then
             echo ""
@@ -222,6 +237,6 @@ jobs:
             echo "The schema after a fresh install differs from the schema after upgrading."
             echo "This usually means a migration's Up() doesn't exactly replicate the model"
             echo "snapshot (e.g. a column/index/constraint is missing or extra on one path)."
-            echo "Fix the migration before merging — existing self-hosters will be affected."
+            echo "Fix the migration before merging — existing installs will be affected."
             exit 1
           fi

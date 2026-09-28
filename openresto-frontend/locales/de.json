@@ -76,7 +76,12 @@
       "tableLabel": "Tisch",
       "timeLabel": "Uhrzeit",
       "timezoneHint": "Alle Zeiten sind in {{timezone}} (dort ist es derzeit {{time}} Uhr)",
-      "walkInsOnlyReason": "Nur ohne Reservierung"
+      "walkInsOnlyReason": "Nur ohne Reservierung",
+      "phoneLabel": "Telefon",
+      "phonePlaceholder": "099 123 4567",
+      "phoneAccessibilityLabel": "Telefonnummer",
+      "phoneCountryAccessibilityLabel": "Ländervorwahl",
+      "phoneInvalid": "Bitte eine gültige Telefonnummer für das gewählte Land eingeben."
     },
     "guestDetails": {
       "bookedUnder": "Reserviert auf den Namen {{name}}",
@@ -383,7 +388,9 @@
       "table_not_in_section": "Tisch im angegebenen Bereich nicht gefunden.",
       "walk_in_only": "Dieser Standort nimmt nur spontane Gäste an und akzeptiert keine Onlinebuchungen.",
       "walk_in_only_today": "Dieser Standort nimmt am gewählten Tag nur spontane Gäste an. Bitte wählen Sie einen anderen Tag oder kommen Sie einfach vorbei.",
-      "pacing_full": "Um {{time}} können nur noch {{remaining}} Gäste ankommen. Bitte wählen Sie eine andere Uhrzeit."
+      "pacing_full": "Um {{time}} können nur noch {{remaining}} Gäste ankommen. Bitte wählen Sie eine andere Uhrzeit.",
+      "phone_required": "Eine Telefonnummer ist erforderlich.",
+      "phone_invalid": "Bitte eine gültige Telefonnummer mit Ländervorwahl eingeben."
     },
     "brand": {
       "accent_color_invalid": "Ungültiger Hexcode für die Akzentfarbe.",
@@ -904,7 +911,11 @@
         "namePlaceholder": "Vollständiger Name",
         "specialRequestsPlaceholder": "Ernährungsbedürfnisse, Anlass, Notizen",
         "tableOptionLabel": "{{name}} ({{seats}})",
-        "tableFallbackName": "Tisch {{id}}"
+        "tableFallbackName": "Tisch {{id}}",
+        "guestPhone": "Telefon des Gastes",
+        "phonePlaceholder": "099 123 4567",
+        "phoneCountryLabel": "Ländervorwahl des Gastes",
+        "phoneInvalid": "Bitte eine gültige Telefonnummer für das gewählte Land eingeben."
       },
       "detail": {
         "heading": "Buchungsdetails",
@@ -923,7 +934,8 @@
           "party": "Personen",
           "name": "Name",
           "noShows": "Nichterscheinen",
-          "requests": "Wünsche"
+          "requests": "Wünsche",
+          "phone": "Telefon"
         },
         "noRequests": "Keine",
         "timeRangeWithDuration": "{{range}} ({{mins}} Min.)",
@@ -2137,7 +2149,10 @@
       "removeLabel": "{{name}} entfernen",
       "removeTitle": "Gruppe entfernen",
       "removeConfirm": "{{name}} von der Warteliste entfernen?",
-      "loadFailed": "Die Warteliste konnte nicht geladen werden."
+      "loadFailed": "Die Warteliste konnte nicht geladen werden.",
+      "phoneLabel": "Telefon",
+      "phoneCountryLabel": "Ländervorwahl",
+      "phoneInvalid": "Bitte eine gültige Telefonnummer für das gewählte Land eingeben."
     }
   }
 }

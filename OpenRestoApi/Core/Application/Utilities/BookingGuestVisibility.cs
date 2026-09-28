@@ -4,7 +4,7 @@ using OpenRestoApi.Core.Application.Interfaces;
 namespace OpenRestoApi.Core.Application.Utilities;
 
 /// <summary>
-/// The single point that redacts a booking's guest identity (customer name + email) from an
+/// The single point that redacts a booking's guest identity (customer name, email and phone) from an
 /// admin read, when the caller is an API key (issue #319 Phase 2) authenticated with
 /// <c>bookings:read</c> but not <see cref="ApiKeyScopes.Guests"/>. A JWT/browser session is never
 /// redacted — <see cref="ICurrentUserService.HasScope"/> is unconditionally true for one — and
@@ -26,6 +26,7 @@ public static class BookingGuestVisibility
         {
             dto.CustomerName = null;
             dto.CustomerEmail = null;
+            dto.CustomerPhone = null;
         }
         return dto;
     }
@@ -45,6 +46,7 @@ public static class BookingGuestVisibility
         {
             dto.CustomerName = null;
             dto.CustomerEmail = null;
+            dto.CustomerPhone = null;
         }
         return dto;
     }
@@ -76,6 +78,7 @@ public static class BookingGuestVisibility
         {
             dto.Name = null;
             dto.Email = null;
+            dto.Phone = null;
         }
         return dto;
     }

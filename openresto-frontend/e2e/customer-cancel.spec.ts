@@ -77,6 +77,7 @@ test.describe("Customer cancels an upcoming booking", () => {
           sectionId: PATIO_SECTION_ID,
           customerEmail: CANCEL_TEST_EMAIL,
           customerName: "E2E Customer Cancel Test",
+          customerPhone: "+593991234567",
           seats: 2,
           date: SLOT_UTC,
           holdId,

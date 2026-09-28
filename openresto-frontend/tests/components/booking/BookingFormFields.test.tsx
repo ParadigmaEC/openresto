@@ -8,7 +8,13 @@
 import React from "react";
 import { render, screen } from "@testing-library/react-native";
 import { Platform } from "react-native";
-import { EmailField, GuestsField, NameField } from "@/components/booking/BookingFormFields";
+import {
+  EmailField,
+  GuestsField,
+  NameField,
+  PhoneField,
+} from "@/components/booking/BookingFormFields";
+import { EMPTY_PHONE } from "@/components/common/PhoneInput";
 
 jest.mock("@/context/BrandContext", () => ({
   useBrand: () => ({ primaryColor: "#0a7ea4", appName: "Open Resto" }),
@@ -70,4 +76,13 @@ describe("autofill hints", () => {
     expect(input.props.textContentType).toBe("emailAddress");
     expect(input.props.autoComplete).toBe("email");
   });
+
+  it("offers the saved phone number for the phone field, under Ecuador by default", () => {
+    render(<PhoneField value={EMPTY_PHONE} onChange={jest.fn()} />);
+    const input = screen.getByLabelText("Phone number");
+    expect(input.props.textContentType).toBe("telephoneNumber");
+    expect(input.props.autoComplete).toBe("tel");
+    expect(screen.getByText("Phone")).toBeTruthy();
+    expect(screen.getByText("Ecuador (+593)")).toBeTruthy();
+  }, 15000);
 });

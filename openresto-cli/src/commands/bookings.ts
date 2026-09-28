@@ -101,6 +101,10 @@ export function registerBookingsCommands(program: Command): void {
     .requiredOption("--date <date>", "Booking date/time (ISO 8601, UTC)")
     .requiredOption("--seats <n>", "Party size", Number)
     .requiredOption("--email <email>", "Customer email")
+    .requiredOption(
+      "--phone <e164>",
+      "Customer phone in international format, e.g. +593991234567",
+    )
     .option("--name <name>", "Customer name")
     .action(
       handle(
@@ -112,6 +116,7 @@ export function registerBookingsCommands(program: Command): void {
             date: string;
             seats: number;
             email: string;
+            phone: string;
             name?: string;
           },
           command: Command,
@@ -126,6 +131,7 @@ export function registerBookingsCommands(program: Command): void {
               date: options.date,
               seats: options.seats,
               customerEmail: options.email,
+              customerPhone: options.phone,
               customerName: options.name,
             },
           });

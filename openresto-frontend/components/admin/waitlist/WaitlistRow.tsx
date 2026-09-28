@@ -6,6 +6,7 @@ import RowTextButton from "@/components/common/RowTextButton";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import { theme } from "@/theme/theme";
 import { relativeTime } from "@/utils/formatters";
+import { formatPhoneForDisplay } from "@/utils/phone";
 import type { WaitlistEntry } from "@/api/waitlist";
 import { styles } from "@/styles/admin/waitlist.styles";
 
@@ -59,6 +60,7 @@ export default function WaitlistRow({
           {called && entry.notifiedAt
             ? t("admin.waitlist.called", { time: relativeTime(entry.notifiedAt) })
             : t("admin.waitlist.joined", { time: relativeTime(entry.joinedAt) })}
+          {entry.phone ? ` · ${formatPhoneForDisplay(entry.phone)}` : ""}
           {entry.email ? ` · ${entry.email}` : ""}
         </ThemedText>
       </View>

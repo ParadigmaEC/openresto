@@ -16,6 +16,10 @@ public class JoinWaitlistRequest
     [StringLength(ContactLimits.MaxEmailLength)]
     public string? Email { get; set; }
 
+    /// <summary>Required; normalized to E.164 by <see cref="Utilities.CustomerPhone"/>.</summary>
+    [StringLength(Utilities.CustomerPhone.MaxInputLength)]
+    public string? Phone { get; set; }
+
     [StringLength(GuestPushFields.MaxLocaleLength)]
     public string? Locale { get; set; }
 }
@@ -81,6 +85,7 @@ public class WaitlistEntryDto
     public int Number { get; set; }
     public string? Name { get; set; }
     public string? Email { get; set; }
+    public string? Phone { get; set; }
     public int Seats { get; set; }
     public string Status { get; set; } = string.Empty;
     public DateTime JoinedAt { get; set; }

@@ -3,7 +3,6 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -22,41 +21,18 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
     public const string JwtIssuer = "openresto-api";
     public const string JwtAudience = "openresto-admin";
 
-    // Keep the connection open for the lifetime of the factory so the in-memory SQLite DB persists
-    private readonly SqliteConnection _connection;
+    private readonly PostgresTestDatabase _database = PostgresTestDatabase.Acquire();
 
-    public TestWebAppFactory()
-    {
-        _connection = new SqliteConnection("Data Source=:memory:");
-        _connection.Open();
-    }
+    /// <summary>The database this factory's app runs against, for tests that open their own contexts.</summary>
+    public string ConnectionString => _database.ConnectionString;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+        builder.UseSetting("ConnectionStrings:DefaultConnection", _database.ConnectionString);
 
         builder.ConfigureServices(services =>
         {
-            // Remove ALL DbContext-related registrations
-            var descriptorsToRemove = services
-                .Where(d =>
-                    d.ServiceType == typeof(DbContextOptions<AppDbContext>) ||
-                    d.ServiceType == typeof(DbContextOptions) ||
-                    d.ServiceType == typeof(AppDbContext))
-                .ToList();
-
-            foreach (ServiceDescriptor? descriptor in descriptorsToRemove)
-            {
-                services.Remove(descriptor);
-            }
-
-            // Use SQLite in-memory (not EF InMemory) so ExecuteSqlRaw works
-            services.AddDbContext<AppDbContext>(options =>
-            {
-                options.UseSqlite(_connection);
-                options.AddInterceptors(new OpenRestoApi.Infrastructure.Persistence.SqlitePragmaInterceptor());
-            });
-
             // Replace IEmailService with a mock for testing
             ServiceDescriptor? emailServiceDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IEmailService));
             if (emailServiceDescriptor != null)
@@ -65,8 +41,8 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             }
             services.AddScoped<IEmailService, MockEmailService>();
 
-            // Replace INotificationQueue with a no-op so the BackgroundService never opens
-            // concurrent SQLite connections against the shared in-memory test connection.
+            // Replace INotificationQueue with a no-op so no background send races a test's
+            // assertions or outlives the factory's database lease.
             ServiceDescriptor? queueDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(INotificationQueue));
             if (queueDescriptor != null)
                 services.Remove(queueDescriptor);
@@ -153,7 +129,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
         base.Dispose(disposing);
         if (disposing)
         {
-            _connection.Dispose();
+            _database.Dispose();
         }
     }
 

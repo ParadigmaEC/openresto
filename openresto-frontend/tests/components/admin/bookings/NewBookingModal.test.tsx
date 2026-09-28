@@ -178,6 +178,9 @@ const mockRestaurants = [
   },
 ];
 
+const typePhone = (value = "0991234567") =>
+  fireEvent.changeText(screen.getByPlaceholderText("099 123 4567"), value);
+
 describe("NewBookingModal", () => {
   const onClose = jest.fn();
   const onCreated = jest.fn();
@@ -262,6 +265,7 @@ describe("NewBookingModal", () => {
     render(<NewBookingModal visible onClose={onClose} onCreated={onCreated} />);
     await waitFor(() => expect(screen.getByPlaceholderText("guest@example.com")).toBeTruthy());
     fireEvent.changeText(screen.getByPlaceholderText("guest@example.com"), "test@example.com");
+    typePhone();
     await act(async () => {
       fireEvent.press(screen.getByText("Create Booking"));
     });
@@ -276,6 +280,7 @@ describe("NewBookingModal", () => {
     render(<NewBookingModal visible onClose={onClose} onCreated={onCreated} />);
     await waitFor(() => expect(screen.getByPlaceholderText("guest@example.com")).toBeTruthy());
     fireEvent.changeText(screen.getByPlaceholderText("guest@example.com"), "test@example.com");
+    typePhone();
     await act(async () => {
       fireEvent.press(screen.getByText("Create Booking"));
     });
@@ -289,6 +294,7 @@ describe("NewBookingModal", () => {
     await waitFor(() => expect(screen.getByPlaceholderText("guest@example.com")).toBeTruthy());
     fireEvent.press(screen.getByText("5 guests"));
     fireEvent.changeText(screen.getByPlaceholderText("guest@example.com"), "test@example.com");
+    typePhone();
     await act(async () => {
       fireEvent.press(screen.getByText("Create Booking"));
     });
@@ -305,6 +311,7 @@ describe("NewBookingModal", () => {
     await waitFor(() => expect(screen.getByPlaceholderText("guest@example.com")).toBeTruthy());
     fireEvent.press(screen.getByText("5 guests"));
     fireEvent.changeText(screen.getByPlaceholderText("guest@example.com"), "test@example.com");
+    typePhone();
     await act(async () => {
       fireEvent.press(screen.getByText("Create Booking"));
     });
@@ -322,6 +329,7 @@ describe("NewBookingModal", () => {
     await waitFor(() => expect(screen.getByPlaceholderText("guest@example.com")).toBeTruthy());
     fireEvent.press(screen.getByText("5 guests"));
     fireEvent.changeText(screen.getByPlaceholderText("guest@example.com"), "test@example.com");
+    typePhone();
     await act(async () => {
       fireEvent.press(screen.getByText("Create Booking"));
     });
@@ -338,6 +346,7 @@ describe("NewBookingModal", () => {
     );
     await waitFor(() => expect(screen.getByPlaceholderText("guest@example.com")).toBeTruthy());
     fireEvent.changeText(screen.getByPlaceholderText("guest@example.com"), "test@example.com");
+    typePhone();
     rerender(<NewBookingModal visible={false} onClose={onClose} onCreated={onCreated} />);
     (restaurantsApi.fetchRestaurants as jest.Mock).mockResolvedValue(mockRestaurants);
     rerender(<NewBookingModal visible onClose={onClose} onCreated={onCreated} />);
@@ -356,6 +365,7 @@ describe("NewBookingModal", () => {
     // Select a date 7 days ago via the mocked picker.
     fireEvent.press(screen.getByTestId("date-picker-past"));
     fireEvent.changeText(screen.getByPlaceholderText("guest@example.com"), "test@example.com");
+    typePhone();
 
     await act(async () => {
       fireEvent.press(screen.getByText("Create Booking"));
@@ -375,6 +385,7 @@ describe("NewBookingModal", () => {
 
     fireEvent.press(screen.getByTestId("date-picker-future"));
     fireEvent.changeText(screen.getByPlaceholderText("guest@example.com"), "test@example.com");
+    typePhone();
 
     await act(async () => {
       fireEvent.press(screen.getByText("Create Booking"));
@@ -464,6 +475,32 @@ describe("NewBookingModal", () => {
     await waitFor(() => expect(screen.getByText("Table 100 (4 seats)")).toBeTruthy());
   });
 
+  it("sends the guest's phone in E.164, read against Ecuador by default", async () => {
+    (adminApi.adminCreateBooking as jest.Mock).mockResolvedValue({ id: 42 });
+    render(<NewBookingModal visible onClose={onClose} onCreated={onCreated} />);
+    await waitFor(() => expect(screen.getByPlaceholderText("guest@example.com")).toBeTruthy());
+    fireEvent.changeText(screen.getByPlaceholderText("guest@example.com"), "test@example.com");
+    typePhone();
+    await act(async () => {
+      fireEvent.press(screen.getByText("Create Booking"));
+    });
+    await waitFor(() => expect(adminApi.adminCreateBooking).toHaveBeenCalled());
+    expect((adminApi.adminCreateBooking as jest.Mock).mock.calls[0][0].customerPhone).toBe(
+      "+593991234567"
+    );
+  });
+
+  it("does not submit without a phone, or with one invalid for the country", async () => {
+    render(<NewBookingModal visible onClose={onClose} onCreated={onCreated} />);
+    await waitFor(() => expect(screen.getByPlaceholderText("guest@example.com")).toBeTruthy());
+    fireEvent.changeText(screen.getByPlaceholderText("guest@example.com"), "test@example.com");
+    fireEvent.press(screen.getByText("Create Booking"));
+    typePhone("099123456");
+    expect(screen.getByText("Enter a valid phone number for the selected country.")).toBeTruthy();
+    fireEvent.press(screen.getByText("Create Booking"));
+    expect(adminApi.adminCreateBooking).not.toHaveBeenCalled();
+  });
+
   it("does not submit while the form is invalid", async () => {
     render(<NewBookingModal visible onClose={onClose} onCreated={onCreated} />);
     await waitFor(() => expect(screen.getByPlaceholderText("guest@example.com")).toBeTruthy());
@@ -476,6 +513,7 @@ describe("NewBookingModal", () => {
     render(<NewBookingModal visible onClose={onClose} onCreated={onCreated} />);
     await waitFor(() => expect(screen.getByPlaceholderText("guest@example.com")).toBeTruthy());
     fireEvent.changeText(screen.getByPlaceholderText("guest@example.com"), "test@example.com");
+    typePhone();
     await act(async () => {
       fireEvent.press(screen.getByText("Create Booking"));
     });
@@ -489,6 +527,7 @@ describe("NewBookingModal", () => {
     render(<NewBookingModal visible onClose={onClose} onCreated={onCreated} />);
     await waitFor(() => expect(screen.getByPlaceholderText("guest@example.com")).toBeTruthy());
     fireEvent.changeText(screen.getByPlaceholderText("guest@example.com"), "test@example.com");
+    typePhone();
     await act(async () => {
       fireEvent.press(screen.getByText("Create Booking"));
     });
@@ -520,6 +559,7 @@ describe("NewBookingModal", () => {
     render(<NewBookingModal visible onClose={onClose} onCreated={onCreated} />);
     await waitFor(() => expect(screen.getByPlaceholderText("guest@example.com")).toBeTruthy());
     fireEvent.changeText(screen.getByPlaceholderText("guest@example.com"), "test@example.com");
+    typePhone();
     fireEvent.changeText(screen.getByPlaceholderText("Full name"), "  Jane Doe  ");
     await act(async () => {
       fireEvent.press(screen.getByText("Create Booking"));

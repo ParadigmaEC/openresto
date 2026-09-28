@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using OpenRestoApi.Core.Domain;
 using OpenRestoApi.Infrastructure.Persistence;
@@ -8,27 +7,24 @@ namespace OpenRestoApi.Tests.Integration;
 
 public class RepositoryTests : IDisposable
 {
-    private readonly SqliteConnection _connection;
+    private readonly PostgresTestDatabase _database = PostgresTestDatabase.Acquire();
 
     public RepositoryTests()
     {
-        _connection = new SqliteConnection("Data Source=:memory:");
-        _connection.Open();
     }
 
     public void Dispose()
     {
-        _connection.Dispose();
+        _database.Dispose();
         GC.SuppressFinalize(this);
     }
 
     private AppDbContext CreateContext()
     {
         DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(_connection)
+            .UseNpgsql(_database.ConnectionString)
             .Options;
         var db = new AppDbContext(options);
-        db.Database.EnsureCreated();
         return db;
     }
 
@@ -143,6 +139,62 @@ public class RepositoryTests : IDisposable
 
         Assert.NotNull(result);
         Assert.Equal("ref@test.com", result!.CustomerEmail);
+    }
+
+    [Fact]
+    public async Task BookingRepository_GetByRefAsync_MatchesARefTypedInTheWrongCase()
+    {
+        using AppDbContext db = CreateContext();
+        (Restaurant restaurant, Section section, Table table) = SeedRestaurantData(db);
+        var repo = new BookingRepository(db);
+        await repo.AddAsync(new Booking
+        {
+            TableId = table.Id, SectionId = section.Id, RestaurantId = restaurant.Id,
+            Date = DateTime.UtcNow.AddDays(3), Seats = 2, BookingRef = "k7p2xq",
+        });
+        db.ChangeTracker.Clear();
+
+        Assert.NotNull(await repo.GetByRefAsync("K7P2XQ"));
+    }
+
+    [Fact]
+    public async Task BookingRepository_GetByRefAsync_StillNeedsTheWholeRef_WhateverTheCase()
+    {
+        using AppDbContext db = CreateContext();
+        (Restaurant restaurant, Section section, Table table) = SeedRestaurantData(db);
+        var repo = new BookingRepository(db);
+        await repo.AddAsync(new Booking
+        {
+            TableId = table.Id, SectionId = section.Id, RestaurantId = restaurant.Id,
+            Date = DateTime.UtcNow.AddDays(3), Seats = 2, BookingRef = "k7p2xq",
+        });
+        db.ChangeTracker.Clear();
+
+        Assert.Null(await repo.GetByRefAsync("K7P2X"));
+    }
+
+    [Fact]
+    public async Task AdminCredentialRepository_GetByEmailAsync_MatchesAnAddressTypedInAnyCase()
+    {
+        using AppDbContext db = CreateContext();
+        db.AdminCredentials.Add(new AdminCredential { Email = "owner@example.com", PasswordHash = "h", PasswordSalt = "s" });
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        AdminCredential? found = await new AdminCredentialRepository(db).GetByEmailAsync("  Owner@EXAMPLE.com ");
+
+        Assert.Equal("owner@example.com", found?.Email);
+    }
+
+    [Fact]
+    public async Task AdminCredentialRepository_GetByEmailAsync_DoesNotMatchAnotherAddress()
+    {
+        using AppDbContext db = CreateContext();
+        db.AdminCredentials.Add(new AdminCredential { Email = "owner@example.com", PasswordHash = "h", PasswordSalt = "s" });
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        Assert.Null(await new AdminCredentialRepository(db).GetByEmailAsync("OWNER@example.org"));
     }
 
     [Fact]

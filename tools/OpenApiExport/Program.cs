@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OpenRestoApi.Core.Application.Interfaces;
@@ -23,12 +22,13 @@ namespace OpenRestoApi.OpenApiExport;
 /// reflection with no <c>ASPNETCORE_ENVIRONMENT</c> set, so <c>AddCustomCors</c>/<c>AddCustomAuthentication</c>'s
 /// config guards throw before any document can be produced; forcing <c>Development</c> gets past
 /// that but then <c>app.InitializeDatabase()</c> — unconditional in <c>Program.cs</c>, between
-/// <c>Build()</c> and <c>Run()</c> — runs a real EF Core migration against the on-disk dev SQLite
-/// file as a side effect of running <c>dotnet build</c>, and the emitted filename
+/// <c>Build()</c> and <c>Run()</c> — runs a real EF Core migration against the dev database as a
+/// side effect of running <c>dotnet build</c>, and the emitted filename
 /// (<c>{ProjectName}.json</c>) isn't easily pinned to <c>v1.json</c>. This tool instead boots the
 /// real app in-process the same way the integration test suite does (<c>TestWebAppFactory</c>):
-/// <c>WebApplicationFactory&lt;Program&gt;</c> under <c>ASPNETCORE_ENVIRONMENT=Testing</c>, an
-/// in-memory SQLite connection standing in for the real database, and no-op stand-ins for email
+/// <c>WebApplicationFactory&lt;Program&gt;</c> under <c>ASPNETCORE_ENVIRONMENT=Testing</c>, EF Core's
+/// in-memory provider standing in for PostgreSQL (so the CI drift job needs no database server),
+/// and no-op stand-ins for email
 /// and the notification queue — then requests the document over the in-process test server exactly
 /// as a browser would from <c>MapOpenApi()</c>, and writes the response body to disk.
 /// </para>
@@ -41,11 +41,8 @@ internal static class Program
     {
         string outputPath = ResolveOutputPath(args);
 
-        using var connection = new SqliteConnection("Data Source=:memory:");
-        connection.Open();
-
         await using var factory = new WebApplicationFactory<BackendEntryPoint>()
-            .WithWebHostBuilder(builder => Configure(builder, connection));
+            .WithWebHostBuilder(Configure);
 
         using HttpClient client = factory.CreateClient();
         HttpResponseMessage response = await client.GetAsync("/openapi/v1.json");
@@ -78,21 +75,24 @@ internal static class Program
         return System.Text.Json.JsonSerializer.Serialize(doc.RootElement, options) + Environment.NewLine;
     }
 
-    private static void Configure(IWebHostBuilder builder, SqliteConnection connection)
+    private static void Configure(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+        // Never opened: the context below replaces the one Program.cs registers with it.
+        builder.UseSetting("ConnectionStrings:DefaultConnection", "Host=unused;Database=unused");
 
         builder.ConfigureServices(services =>
         {
             List<ServiceDescriptor> dbDescriptors = [.. services.Where(d =>
                 d.ServiceType == typeof(DbContextOptions<AppDbContext>)
                 || d.ServiceType == typeof(DbContextOptions)
-                || d.ServiceType == typeof(AppDbContext))];
+                || d.ServiceType == typeof(AppDbContext)
+                || d.ServiceType == typeof(Microsoft.EntityFrameworkCore.Infrastructure.IDbContextOptionsConfiguration<AppDbContext>))];
             foreach (ServiceDescriptor descriptor in dbDescriptors)
             {
                 services.Remove(descriptor);
             }
-            services.AddDbContext<AppDbContext>(options => options.UseSqlite(connection));
+            services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase("openapi-export"));
 
             Replace<IEmailService>(services, new NoOpEmailService());
             Replace<INotificationQueue>(services, new NoOpNotificationQueue());

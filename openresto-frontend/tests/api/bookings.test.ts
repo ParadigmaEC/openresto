@@ -22,6 +22,7 @@ describe("createBooking", () => {
     sectionId: 1,
     customerEmail: "test@example.com",
     customerName: "Test User",
+    customerPhone: "+593991234567",
     seats: 4,
     date: "2026-06-15T19:00:00Z",
   };
@@ -72,6 +73,41 @@ describe("createBooking", () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
 
     await expect(createBooking(validBooking)).rejects.toThrow("Failed to create booking");
+  });
+
+  it("translates a 400 refusing the phone from its code", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({ message: "server wording", code: "booking.phone_invalid" }),
+    });
+
+    await expect(createBooking(validBooking)).rejects.toThrow(
+      "Please enter a valid phone number, including its country code."
+    );
+  });
+
+  it("falls back to the generic message on a 400 without a body", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => {
+        throw new Error("no json");
+      },
+    });
+
+    await expect(createBooking(validBooking)).rejects.toThrow("Failed to create booking");
+  });
+
+  it("reads the stored phone back, and null where an old booking has none", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 1, CustomerPhone: "+593991234567" }),
+    });
+    expect((await createBooking(validBooking))?.customerPhone).toBe("+593991234567");
+
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 2 }) });
+    expect((await createBooking(validBooking))?.customerPhone).toBeNull();
   });
 });
 

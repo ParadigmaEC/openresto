@@ -341,34 +341,39 @@ SOCIAL_LINKS = [
     ("Our blog", "https://paddyspub.example/blog", "link-outline"),
 ]
 
-# (name, email, special_requests) — a deliberate mix: guests with no email at
-# all (phone bookings), guests with no requests, and one long request that
-# stress-tests the admin grid's text wrapping.
+# (name, email, special_requests, phone) — a deliberate mix: guests with no email
+# at all (phone bookings), guests with no requests, and one long request that
+# stress-tests the admin grid's text wrapping. Every booking and waitlist party
+# carries a phone (the server requires one, stored as E.164), so each guest has
+# one: mostly Ecuadorian mobiles, with a few other countries so the admin sees
+# the international format render too. The +1 555-01xx and +44 7700 900xxx
+# numbers are the ranges set aside for fiction.
 GUESTS = [
-    ("Dee Reynolds", "dee@paddyspub.com", None),
-    ("Dennis Reynolds", "dennis@paddyspub.com", "Window seat please"),
-    ("Charlie Kelly", "charlie@paddyspub.com", "No cats were harmed"),
-    ("Mac McDonald", "mac@paddyspub.com", None),
-    ("Frank Reynolds", "frank@paddyspub.com", "Rum ham on the side"),
-    ("The Waitress", "waitress@paddyspub.com", None),
-    ("Rickety Cricket", "cricket@paddyspub.com", "Step-free access required, please seat near the door"),
-    ("The McPoyle Bros", "mcpoyle@paddyspub.com", "Milk only, no exceptions"),
-    ("Gail the Snail", "gail@paddyspub.com", None),
-    ("The Lawyer", "lawyer@paddyspub.com", "Quiet table preferred"),
-    ("Uncle Jack", "jack@paddyspub.com", "Keep hands visible"),
-    ("Artemis Dubois", "artemis@paddyspub.com", "Improv-friendly zone"),
-    ("Bill Ponderosa", None, None),
-    ("Maureen Ponderosa", None, "Allergic to cats. Severely."),
-    ("Z", "z@paddyspub.com", None),
-    ("Ben the Soldier", "ben@paddyspub.com", None),
-    ("Duncan the Landlord", None, "Booked by phone — will settle the tab in cash"),
-    ("Ruby Taft", "ruby@paddyspub.com", None),
+    ("Dee Reynolds", "dee@paddyspub.com", None, "+593991234567"),
+    ("Dennis Reynolds", "dennis@paddyspub.com", "Window seat please", "+593987654321"),
+    ("Charlie Kelly", "charlie@paddyspub.com", "No cats were harmed", "+593998877665"),
+    ("Mac McDonald", "mac@paddyspub.com", None, "+593984561237"),
+    ("Frank Reynolds", "frank@paddyspub.com", "Rum ham on the side", "+12025550143"),
+    ("The Waitress", "waitress@paddyspub.com", None, "+593992345678"),
+    ("Rickety Cricket", "cricket@paddyspub.com", "Step-free access required, please seat near the door", "+593983216540"),
+    ("The McPoyle Bros", "mcpoyle@paddyspub.com", "Milk only, no exceptions", "+593996543210"),
+    ("Gail the Snail", "gail@paddyspub.com", None, "+593979812345"),
+    ("The Lawyer", "lawyer@paddyspub.com", "Quiet table preferred", "+447700900123"),
+    ("Uncle Jack", "jack@paddyspub.com", "Keep hands visible", "+593995551234"),
+    ("Artemis Dubois", "artemis@paddyspub.com", "Improv-friendly zone", "+34612345678"),
+    ("Bill Ponderosa", None, None, "+593988123456"),
+    ("Maureen Ponderosa", None, "Allergic to cats. Severely.", "+593988123457"),
+    ("Z", "z@paddyspub.com", None, "+593967890123"),
+    ("Ben the Soldier", "ben@paddyspub.com", None, "+12025550187"),
+    ("Duncan the Landlord", None, "Booked by phone — will settle the tab in cash", "+593990011223"),
+    ("Ruby Taft", "ruby@paddyspub.com", None, "+593981122334"),
     (
         "Bonnie Kelly",
         "bonnie@paddyspub.com",
         "Table away from the speakers if you have one, and we'll need a high chair plus somewhere to park a walker. Celebrating a birthday so a candle would be lovely.",
+        "+573001234567",
     ),
-    ("Luther McDonald", None, None),
+    ("Luther McDonald", None, None, "+593993344556"),
 ]
 
 REF_ADJECTIVES = [
@@ -988,7 +993,7 @@ def emit_bookings(ds, now_utc, days_back, days_forward, occupancy, rng):
                 covers_by_slot[minutes] = covers_by_slot.get(minutes, 0) + seats
                 placed += 1
 
-                name, email, special = GUESTS[guest_idx % len(GUESTS)]
+                name, email, special, phone = GUESTS[guest_idx % len(GUESTS)]
                 guest_idx += 1
                 if walk_in:
                     special = "Walk-in, recorded at the door"
@@ -1008,6 +1013,7 @@ def emit_bookings(ds, now_utc, days_back, days_forward, occupancy, rng):
                             "BookingRef": mint(spec["ref_format"]),
                             "CustomerName": name,
                             "CustomerEmail": email,
+                            "CustomerPhone": phone,
                             "Date": utc_str(start_utc),
                             "EndTime": utc_str(end_utc),
                             "Seats": seats,
@@ -1036,6 +1042,7 @@ def emit_bookings(ds, now_utc, days_back, days_forward, occupancy, rng):
                     "BookingRef": mint(first["spec"]["ref_format"]),
                     "CustomerName": "Rex the Bouncer",
                     "CustomerEmail": "rex@paddyspub.com",
+                    "CustomerPhone": "+593994445566",
                     "Date": utc_str(start_utc),
                     "EndTime": utc_str(start_utc + timedelta(minutes=duration_for(first["spec"], 2))),
                     "Seats": 2,
@@ -1091,7 +1098,7 @@ def emit_bookings(ds, now_utc, days_back, days_forward, occupancy, rng):
         end_utc = start_utc + timedelta(minutes=duration_for(strand_spec, min(2, capacity)))
         ledger.reserve(keys, start_utc, end_utc)
 
-        name, email, _ = GUESTS[guest_idx % len(GUESTS)]
+        name, email, _, phone = GUESTS[guest_idx % len(GUESTS)]
         guest_idx += 1
         bookings.append(
             (
@@ -1099,6 +1106,7 @@ def emit_bookings(ds, now_utc, days_back, days_forward, occupancy, rng):
                     "BookingRef": mint(strand_spec["ref_format"]),
                     "CustomerName": name,
                     "CustomerEmail": email,
+                    "CustomerPhone": phone,
                     "Date": utc_str(start_utc),
                     "EndTime": utc_str(end_utc),
                     "Seats": min(2, capacity),
@@ -1239,13 +1247,14 @@ def build_door_queue(r, now_utc, ledger, mint, rng):
         return "".join(rng.choice(WAITLIST_REF_ALPHABET) for _ in range(20))
 
     def entry(minutes_ago, seats, status, **fields):
-        name, email, _ = next(guests)
+        name, email, _, phone = next(guests)
         return {
             "RestaurantId": r["id"],
             "Ref": ref(),
             "Name": name,
             "Seats": seats,
             "Email": email if rng.random() < 0.5 else None,
+            "Phone": phone,
             "Locale": "en",
             "Status": status,
             "CreatedAt": utc_str(now_utc - timedelta(minutes=minutes_ago)),
@@ -1269,6 +1278,7 @@ def build_door_queue(r, now_utc, ledger, mint, rng):
             "BookingRef": mint(spec["ref_format"]),
             "CustomerName": seated["Name"],
             "CustomerEmail": seated["Email"],
+            "CustomerPhone": seated["Phone"],
             "Date": utc_str(start_utc),
             "EndTime": utc_str(end_utc),
             "Seats": seats,

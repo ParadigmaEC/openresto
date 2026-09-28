@@ -18,8 +18,29 @@ public class BookingService(
     ITableGroupRepository tableGroupRepository,
     IBookingConfirmationService? confirmationService = null,
     INotificationQueue? notificationQueue = null,
-    ICurrentUserService? currentUser = null)
+    ICurrentUserService? currentUser = null,
+    IBookingWriteLock? writeLock = null)
 {
+    /// <summary>
+    /// Castle's generated proxy constructors drop default values, so a Moq class mock reaches only
+    /// a constructor of exactly matching arity. This is that constructor.
+    /// </summary>
+    public BookingService(
+        IBookingRepository bookings,
+        ITableRepository tables,
+        ISectionRepository sections,
+        IRestaurantRepository restaurants,
+        IHoldService holds,
+        BookingMapper bookingMapper,
+        TableAutoAssigner assigner,
+        ITableGroupRepository tableGroups,
+        IBookingConfirmationService? confirmations,
+        INotificationQueue? notifications,
+        ICurrentUserService? user)
+        : this(bookings, tables, sections, restaurants, holds, bookingMapper, assigner, tableGroups,
+            confirmations, notifications, user, null)
+    { }
+
     private readonly IBookingRepository _bookingRepository = bookingRepository;
     private readonly ITableRepository _tableRepository = tableRepository;
     private readonly ISectionRepository _sectionRepository = sectionRepository;
@@ -31,9 +52,12 @@ public class BookingService(
     private readonly IBookingConfirmationService? _confirmationService = confirmationService;
     private readonly INotificationQueue? _notificationQueue = notificationQueue;
     private readonly ICurrentUserService _currentUser = currentUser ?? NullCurrentUserService.Instance;
+    private readonly IBookingWriteLock _writeLock = writeLock ?? NoBookingWriteLock.Instance;
 
     public virtual async Task<BookingDto> CreateBookingAsync(BookingDto bookingDto)
     {
+        bookingDto.CustomerPhone = CustomerPhone.Normalize(bookingDto.CustomerPhone);
+
         Restaurant restaurant = await _restaurantRepository.GetByIdAsync(bookingDto.RestaurantId)
             ?? throw new NotFoundException("Restaurant not found.") { Code = ErrorCodes.RestaurantNotFound };
 
@@ -42,11 +66,32 @@ public class BookingService(
 
         RejectIfClosedToOnlineBookings(restaurant, bookingDate);
         RejectIfPartySizeOutOfRange(bookingDto.Seats);
+
+        Booking newBooking = await _writeLock.RunAsync(
+            restaurant.Id, () => WriteBookingAsync(bookingDto, restaurant, bookingDate));
+
+        if (!string.IsNullOrEmpty(bookingDto.HoldId))
+        {
+            _holdService.ReleaseHold(bookingDto.HoldId);
+        }
+
+        await AnnounceBookingAsync(newBooking, restaurant);
+
+        return _mapper.ToDtoWithGroup(newBooking);
+    }
+
+    /// <summary>
+    /// Every check that depends on other bookings, and the insert, under the restaurant's write
+    /// lock. Auto-assign resolves here too, since the unit it picks is only free until someone
+    /// else books it.
+    /// </summary>
+    private async Task<Booking> WriteBookingAsync(BookingDto bookingDto, Restaurant restaurant, DateTime bookingDate)
+    {
         await RejectIfOverCoverCapAsync(restaurant, bookingDate, bookingDto.Seats);
 
         if (bookingDto.TableGroupId.HasValue && bookingDto.TableId is null)
         {
-            return await CreateGroupBookingAsync(bookingDto, restaurant, bookingDate);
+            return await WriteGroupBookingAsync(bookingDto, restaurant, bookingDate);
         }
 
         if (bookingDto.TableId is null || bookingDto.SectionId is null)
@@ -63,7 +108,7 @@ public class BookingService(
         // Auto-assign may have landed on a group rather than a table.
         if (bookingDto.TableGroupId.HasValue)
         {
-            return await CreateGroupBookingAsync(bookingDto, restaurant, bookingDate);
+            return await WriteGroupBookingAsync(bookingDto, restaurant, bookingDate);
         }
 
         int tableId = bookingDto.TableId!.Value;
@@ -100,16 +145,7 @@ public class BookingService(
         booking.Section = (await _sectionRepository.GetByIdAsync(sectionId))!;
         booking.Restaurant = restaurant;
 
-        Booking newBooking = await _bookingRepository.AddAsync(booking);
-
-        if (!string.IsNullOrEmpty(bookingDto.HoldId))
-        {
-            _holdService.ReleaseHold(bookingDto.HoldId);
-        }
-
-        await AnnounceBookingAsync(newBooking, restaurant);
-
-        return _mapper.ToDtoWithGroup(newBooking);
+        return await _bookingRepository.AddAsync(booking);
     }
 
     /// <summary>
@@ -323,7 +359,7 @@ public class BookingService(
     /// <see cref="Booking.TableGroupId"/> set and <see cref="Booking.TableId"/> null: it reserves
     /// the group, not one of its tables.
     /// </summary>
-    private async Task<BookingDto> CreateGroupBookingAsync(BookingDto bookingDto, Restaurant restaurant, DateTime bookingDate)
+    private async Task<Booking> WriteGroupBookingAsync(BookingDto bookingDto, Restaurant restaurant, DateTime bookingDate)
     {
         TableGroup group = await _tableGroupRepository.GetByIdWithMembersAsync(bookingDto.TableGroupId!.Value, restaurant.Id)
             ?? throw new NotFoundException("The selected table group no longer exists.") { Code = ErrorCodes.TableGroupNotFound };
@@ -366,16 +402,7 @@ public class BookingService(
             ?? group.Members.OrderBy(m => m.TableId).FirstOrDefault()?.Table?.SectionId;
         booking.Restaurant = restaurant;
 
-        Booking newBooking = await _bookingRepository.AddAsync(booking);
-
-        if (!string.IsNullOrEmpty(bookingDto.HoldId))
-        {
-            _holdService.ReleaseHold(bookingDto.HoldId);
-        }
-
-        await AnnounceBookingAsync(newBooking, restaurant);
-
-        return _mapper.ToDtoWithGroup(newBooking);
+        return await _bookingRepository.AddAsync(booking);
     }
 
     private static void RejectIfGroupCannotSeat(TableGroup group, Restaurant restaurant, int seats)
@@ -427,6 +454,15 @@ public class BookingService(
     public virtual async Task UpdateBookingAsync(int id, BookingDto bookingDto)
     {
         _ = id; // Required by REST convention (PUT /bookings/{id}) but entity ID comes from DTO
+        await _writeLock.RunAsync(bookingDto.RestaurantId, async () =>
+        {
+            await WriteBookingUpdateAsync(bookingDto);
+            return true;
+        });
+    }
+
+    private async Task WriteBookingUpdateAsync(BookingDto bookingDto)
+    {
         Booking booking = _mapper.ToEntity(bookingDto);
         Restaurant? restaurant = await _restaurantRepository.GetByIdAsync(booking.RestaurantId);
 

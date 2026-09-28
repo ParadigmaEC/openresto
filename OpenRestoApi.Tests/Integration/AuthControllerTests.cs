@@ -548,7 +548,7 @@ public class AuthControllerTests(TestWebAppFactory factory) : IClassFixture<Test
         using (IServiceScope scope = _factory.Services.CreateScope())
         {
             AppDbContext db = scope.ServiceProvider.GetRequiredService<OpenRestoApi.Infrastructure.Persistence.AppDbContext>();
-            AdminCredential cred = await db.AdminCredentials.FirstAsync();
+            AdminCredential cred = await db.AdminCredentials.FirstAsync(c => c.Email == TestWebAppFactory.AdminEmail);
             cred.PvqQuestion = null;
             cred.PvqAnswerHash = null;
             cred.PvqAnswerSalt = null;

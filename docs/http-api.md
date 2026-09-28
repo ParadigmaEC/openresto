@@ -70,7 +70,8 @@ curl -X POST -H "X-API-Key: $OPENRESTO_API_KEY" \
 # Record one taken over the phone
 curl -X POST -H "X-API-Key: $OPENRESTO_API_KEY" -H "Content-Type: application/json" \
   -d '{"restaurantId":2,"sectionId":3,"tableId":11,"seats":2,
-       "date":"2026-01-31T19:00:00Z","customerEmail":"ada@example.com","customerName":"Ada"}' \
+       "date":"2026-01-31T19:00:00Z","customerEmail":"ada@example.com",
+       "customerPhone":"+593991234567","customerName":"Ada"}' \
   https://bookings.example.com/api/admin/bookings
 ```
 
@@ -91,7 +92,7 @@ Every admin endpoint is gated on a `{resource}:{access}` scope:
 | `brand`     | `read`/`write` | Site name, colours, contact details, highlights and media |
 | `users`     | `read`/`write` | List accounts; `write` activates and deactivates them     |
 | `audit`     | `read`         | The admin activity trail                                  |
-| `guests`    | `read`         | Customer names and emails on bookings and the waitlist    |
+| `guests`    | `read`         | Names, emails and phones on bookings and the waitlist     |
 | `email`     | `read`         | Whether outgoing mail is configured and delivering        |
 
 A `write` grant satisfies a `read` requirement; the reverse is never true. `audit`, `guests` and
@@ -99,7 +100,7 @@ A `write` grant satisfies a `read` requirement; the reverse is never true. `audi
 time rather than accepted as scopes nothing checks.
 
 `guests` is a redaction, not a gate: a key with `bookings:read` but no `guests:read` still gets
-every booking, with the customer's name and email blanked. Grant it only where the caller
+every booking, with the customer's name, email and phone blanked. Grant it only where the caller
 genuinely needs to identify people. The same redaction covers the recipient on an email
 delivery failure.
 

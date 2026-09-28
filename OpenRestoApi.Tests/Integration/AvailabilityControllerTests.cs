@@ -19,7 +19,7 @@ public class AvailabilityControllerTests(TestWebAppFactory factory) : IClassFixt
         using (IServiceScope scope = _factory.Services.CreateScope())
         {
             AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            restaurantId = db.Restaurants.First().Id;
+            restaurantId = db.Restaurants.OrderBy(r => r.Id).First().Id;
         }
 
         var date = DateTime.UtcNow.AddDays(1).ToString("yyyy-MM-dd");
@@ -57,7 +57,7 @@ public class AvailabilityControllerTests(TestWebAppFactory factory) : IClassFixt
     }
 
     // ── BookingSlotIntervalMinutes (#245) ────────────────────────────────────
-    // End-to-end (real HTTP route + real AvailabilityService + real SQLite) proof
+    // End-to-end (real HTTP route + real AvailabilityService + real PostgreSQL) proof
     // that the configured interval drives the slot step on GET /api/availability,
     // and that a long duration + short interval doesn't offer double-booked starts.
 

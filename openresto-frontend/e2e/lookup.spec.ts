@@ -97,6 +97,7 @@ test.describe("Booking lookup", { tag: "@smoke" }, () => {
           sectionId: tableSection.id,
           customerEmail: lookupEmail,
           customerName: "Lookup Test User",
+          customerPhone: "+593991234567",
           seats: 2,
           date: slotUtc.toISOString(),
           holdId,

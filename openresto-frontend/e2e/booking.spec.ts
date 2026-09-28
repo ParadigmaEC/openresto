@@ -74,6 +74,10 @@ test.describe("Booking Flow", () => {
     await expect(emailInput).toBeVisible();
     await emailInput.fill(TEST_EMAIL);
 
+    const phoneInput = page.getByPlaceholder("099 123 4567");
+    await expect(phoneInput).toBeVisible();
+    await phoneInput.fill("0991234567");
+
     // 6. Wait for the hold to trigger (debounce is 2s, then hold API call)
     await expect(page.locator("text=Table held")).toBeVisible({ timeout: 30_000 });
 

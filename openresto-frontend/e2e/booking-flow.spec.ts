@@ -59,6 +59,7 @@ test.describe("Customer booking end to end", { tag: "@smoke" }, () => {
     // ── 4. Fill customer details to trigger the hold (debounce = 2 s) ────────
     await page.getByPlaceholder("Your full name").fill("E2E Booking Flow");
     await page.getByPlaceholder("your@email.com").fill(TEST_EMAIL);
+    await page.getByPlaceholder("099 123 4567").fill("0991234567");
 
     // ── 5. Hold banner appears (allow 30 s to handle any slot re-selection) ──
     await expect(page.locator("text=Table held")).toBeVisible({ timeout: 30_000 });

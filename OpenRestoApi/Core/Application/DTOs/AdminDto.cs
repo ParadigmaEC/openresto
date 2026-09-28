@@ -99,6 +99,7 @@ public class BookingDetailDto
     public DateTime? EndTime { get; set; }
     public string? CustomerEmail { get; set; }
     public string? CustomerName { get; set; }
+    public string? CustomerPhone { get; set; }
     public int Seats { get; set; }
     public string? SpecialRequests { get; set; }
     public string? BookingRef { get; set; }
@@ -151,6 +152,10 @@ public class AdminCreateBookingRequest
     public DateTime Date { get; set; }
     public string CustomerEmail { get; set; } = null!;
     public string? CustomerName { get; set; }
+
+    /// <summary>Required; normalized to E.164 by <see cref="Utilities.CustomerPhone"/>.</summary>
+    [StringLength(Utilities.CustomerPhone.MaxInputLength)]
+    public string? CustomerPhone { get; set; }
 
     [Range(BookingLimits.MinSeats, BookingLimits.MaxSeats)]
     public int Seats { get; set; }

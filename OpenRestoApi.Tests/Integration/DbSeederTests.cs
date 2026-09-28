@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using OpenRestoApi.Core.Domain;
 using OpenRestoApi.Infrastructure.Persistence;
@@ -7,27 +6,24 @@ namespace OpenRestoApi.Tests.Integration;
 
 public class DbSeederTests : IDisposable
 {
-    private readonly SqliteConnection _connection;
+    private readonly PostgresTestDatabase _database = PostgresTestDatabase.Acquire();
 
     public DbSeederTests()
     {
-        _connection = new SqliteConnection("Data Source=:memory:");
-        _connection.Open();
     }
 
     public void Dispose()
     {
-        _connection.Dispose();
+        _database.Dispose();
         GC.SuppressFinalize(this);
     }
 
     private AppDbContext CreateContext()
     {
         DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(_connection)
+            .UseNpgsql(_database.ConnectionString)
             .Options;
         var db = new AppDbContext(options);
-        db.Database.EnsureCreated();
         return db;
     }
 

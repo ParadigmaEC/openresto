@@ -6,7 +6,7 @@ using OpenRestoApi.Core.Application.Interfaces;
 namespace OpenRestoApi.Infrastructure.NativeClients;
 
 /// <summary>
-/// Counts native-client requests in memory so the pipeline never writes to SQLite per request —
+/// Counts native-client requests in memory so the pipeline never writes to the database per request —
 /// the same reason <c>HoldService</c> is a singleton dictionary. A tally is an immutable value
 /// swapped in by <see cref="ConcurrentDictionary{TKey,TValue}.AddOrUpdate(TKey, Func{TKey,TValue}, Func{TKey,TValue,TValue})"/>,
 /// which retries its update factory under contention: mutating a shared counter object there

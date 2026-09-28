@@ -198,3 +198,59 @@ describe("bookings email", () => {
     process.exitCode = 0;
   });
 });
+
+describe("bookings create", () => {
+  const ARGS = [
+    "bookings",
+    "create",
+    "--location",
+    "1",
+    "--section",
+    "2",
+    "--table",
+    "5",
+    "--date",
+    "2026-01-31T19:00:00Z",
+    "--seats",
+    "2",
+    "--email",
+    "ada@example.com",
+  ];
+
+  test("sends the phone as customerPhone", async () => {
+    const sent: { body: unknown }[] = [];
+    globalThis.fetch = capturingFetch(sent);
+    const { restore } = captureLogs();
+
+    try {
+      await buildProgram().parseAsync([...ARGS, "--phone", "+593991234567"], {
+        from: "user",
+      });
+    } finally {
+      restore();
+    }
+
+    assert.equal(sent.length, 1);
+    assert.equal(
+      (sent[0].body as { customerPhone?: string }).customerPhone,
+      "+593991234567",
+    );
+  });
+
+  test("refuses to send a booking without --phone", async () => {
+    const sent: { body: unknown }[] = [];
+    globalThis.fetch = capturingFetch(sent);
+    const { restore } = captureLogs();
+
+    try {
+      await assert.rejects(
+        buildProgram().parseAsync(ARGS, { from: "user" }),
+        /--phone/,
+      );
+    } finally {
+      restore();
+    }
+
+    assert.equal(sent.length, 0);
+  });
+});

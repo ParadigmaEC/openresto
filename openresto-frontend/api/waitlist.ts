@@ -35,6 +35,8 @@ export interface JoinWaitlistRequest {
   name: string;
   seats: number;
   email?: string;
+  /** E.164, e.g. +593991234567. Required. */
+  phone: string;
   locale?: string;
 }
 
@@ -44,6 +46,8 @@ export interface WaitlistEntry {
   /** Null for an API key without guests:read. */
   name: string | null;
   email: string | null;
+  /** E.164; null for an API key without guests:read, or an entry from before it was required. */
+  phone: string | null;
   seats: number;
   status: WaitlistStatus;
   joinedAt: string;

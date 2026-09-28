@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using OpenRestoApi.Core.Domain;
 using OpenRestoApi.Infrastructure.Persistence;
@@ -7,39 +6,34 @@ using OpenRestoApi.Infrastructure.Persistence.Repositories;
 namespace OpenRestoApi.Tests.Infrastructure;
 
 /// <summary>
-/// Real SQLite rather than the in-memory provider: the sweep uses <c>ExecuteUpdateAsync</c> and
+/// Real PostgreSQL rather than the in-memory provider: the sweep uses <c>ExecuteUpdateAsync</c> and
 /// <c>ExecuteDeleteAsync</c>, which the in-memory provider cannot translate.
 /// </summary>
 public class WaitlistRepositoryTests : IDisposable
 {
     private static readonly DateTime Now = new(2026, 9, 26, 19, 0, 0, DateTimeKind.Utc);
 
-    private readonly SqliteConnection _connection;
+    private readonly PostgresTestDatabase _database = PostgresTestDatabase.Acquire();
 
     public WaitlistRepositoryTests()
     {
-        _connection = new SqliteConnection("Data Source=:memory:");
-        _connection.Open();
+        using AppDbContext db = CreateContext();
+        db.Restaurants.AddRange(new Restaurant { Id = 1, Name = "One" }, new Restaurant { Id = 2, Name = "Two" });
+        db.SaveChanges();
     }
 
     public void Dispose()
     {
-        _connection.Dispose();
+        _database.Dispose();
         GC.SuppressFinalize(this);
     }
 
     private AppDbContext CreateContext()
     {
         DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(_connection)
+            .UseNpgsql(_database.ConnectionString)
             .Options;
-        var db = new AppDbContext(options);
-        if (db.Database.EnsureCreated())
-        {
-            db.Restaurants.AddRange(new Restaurant { Id = 1, Name = "One" }, new Restaurant { Id = 2, Name = "Two" });
-            db.SaveChanges();
-        }
-        return db;
+        return new AppDbContext(options);
     }
 
     private static WaitlistEntry Entry(string entryRef, DateTime createdAt, WaitlistStatus status = WaitlistStatus.Waiting, int restaurantId = 1) => new()
@@ -115,7 +109,7 @@ public class WaitlistRepositoryTests : IDisposable
 
         using AppDbContext check = CreateContext();
         string status = await check.Database
-            .SqlQueryRaw<string>("SELECT Status AS Value FROM WaitlistEntries WHERE Ref = 'new'")
+            .SqlQueryRaw<string>("SELECT \"Status\" AS \"Value\" FROM \"WaitlistEntries\" WHERE \"Ref\" = 'new'")
             .SingleAsync();
         Assert.Equal("Notified", status);
     }
@@ -177,7 +171,7 @@ public class WaitlistRepositoryTests : IDisposable
 
         using (AppDbContext db = CreateContext())
         {
-            await db.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON; DELETE FROM Bookings;");
+            await db.Database.ExecuteSqlRawAsync("DELETE FROM \"Bookings\"");
         }
 
         using AppDbContext check = CreateContext();

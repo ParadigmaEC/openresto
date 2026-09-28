@@ -21,6 +21,7 @@ export interface BookingFormParts {
   tableField: ReactNode;
   nameField: ReactNode;
   emailField: ReactNode;
+  phoneField: ReactNode;
   requestsField: (label: string) => ReactNode;
   /** The times picker, or the closed-day / walk-in-day notice standing in for it. */
   timesContent: ReactNode;
@@ -118,6 +119,7 @@ export function BookingFormDrawerLayout({
         />
         {parts.nameField}
         {parts.emailField}
+        {parts.phoneField}
         {parts.requestsField(t("booking.drawer.specialRequestsLabel"))}
       </View>
 
@@ -170,8 +172,8 @@ export function BookingFormDrawerLayout({
 
 /**
  * Inline page layout: the same fields paired into rows, which collapse to a single column
- * below the mobile breakpoint. The hold banner rides alongside the email field when there
- * are two columns to ride in.
+ * below the mobile breakpoint. The hold banner rides under the email and phone fields when
+ * there are two columns to ride in.
  */
 export function BookingFormInlineLayout({
   restaurant,
@@ -228,6 +230,7 @@ export function BookingFormInlineLayout({
       >
         <View style={[styles.field, half]}>
           {parts.emailField}
+          {parts.phoneField}
           {isTwoColumn && <View style={styles.holdPush}>{parts.holdBanner}</View>}
         </View>
         <View style={half}>{parts.requestsField(t("booking.form.specialRequestsLabel"))}</View>

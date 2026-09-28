@@ -8,6 +8,7 @@ using OpenRestoApi.Core.Application.DTOs;
 using OpenRestoApi.Core.Application.Utilities;
 using OpenRestoApi.Core.Domain;
 using OpenRestoApi.Infrastructure.Persistence;
+using OpenRestoApi.Tests.TestInfrastructure;
 
 namespace OpenRestoApi.Tests.Integration;
 
@@ -51,7 +52,7 @@ public class WaitlistControllerTests(TestWebAppFactory factory) : IClassFixture<
         int id = SeedRestaurant(walkInOnly: false);
 
         HttpResponseMessage response = await _factory.CreateClient()
-            .PostAsJsonAsync($"/api/restaurants/{id}/waitlist", new { name = "Ada", seats = 2 });
+            .PostAsJsonAsync($"/api/restaurants/{id}/waitlist", new { phone = TestPhones.Valid, name = "Ada", seats = 2 });
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         MessageResponse? body = await response.Content.ReadFromJsonAsync<MessageResponse>();
@@ -101,7 +102,7 @@ public class WaitlistControllerTests(TestWebAppFactory factory) : IClassFixture<
         int id = SeedRestaurant(walkInOnly: false);
         HttpClient client = _factory.CreateAuthenticatedClient();
 
-        HttpResponseMessage added = await client.PostAsJsonAsync($"/api/admin/restaurants/{id}/waitlist", new { name = "Ada", seats = 3 });
+        HttpResponseMessage added = await client.PostAsJsonAsync($"/api/admin/restaurants/{id}/waitlist", new { phone = TestPhones.Valid, name = "Ada", seats = 3 });
         Assert.Equal(HttpStatusCode.Created, added.StatusCode);
         WaitlistEntryDto entry = (await added.Content.ReadFromJsonAsync<WaitlistEntryDto>())!;
         Assert.True(entry.CanSeatNow);
@@ -126,7 +127,7 @@ public class WaitlistControllerTests(TestWebAppFactory factory) : IClassFixture<
     {
         int id = SeedRestaurant(walkInOnly: false);
         HttpClient client = _factory.CreateAuthenticatedClient();
-        HttpResponseMessage added = await client.PostAsJsonAsync($"/api/admin/restaurants/{id}/waitlist", new { name = "Bo", seats = 2 });
+        HttpResponseMessage added = await client.PostAsJsonAsync($"/api/admin/restaurants/{id}/waitlist", new { phone = TestPhones.Valid, name = "Bo", seats = 2 });
         WaitlistEntryDto entry = (await added.Content.ReadFromJsonAsync<WaitlistEntryDto>())!;
 
         Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync($"/api/admin/waitlist/{entry.Id}/remove", null)).StatusCode);

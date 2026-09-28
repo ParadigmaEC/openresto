@@ -27,7 +27,7 @@ builder.Services.AddCustomCors(builder.Configuration);
 builder.Services.AddCustomRateLimiting(builder.Environment);
 builder.Services.AddCustomAuthentication(builder.Configuration);
 
-string connectionString = builder.Configuration.GetAppConnectionString(builder.Environment);
+string connectionString = builder.Configuration.GetAppConnectionString();
 builder.Services.AddDatabaseSetup(connectionString, builder.Environment);
 
 WebApplication app = builder.Build();

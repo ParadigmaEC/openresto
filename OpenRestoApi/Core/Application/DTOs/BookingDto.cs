@@ -32,6 +32,9 @@ public class BookingDto
     public DateTime Date { get; set; }
     public string? CustomerEmail { get; set; }
     public string? CustomerName { get; set; }
+    /// <summary>Required on create; normalized to E.164 by <see cref="Utilities.CustomerPhone"/>.</summary>
+    [StringLength(Utilities.CustomerPhone.MaxInputLength)]
+    public string? CustomerPhone { get; set; }
     /// <summary>Party size. Bounded to [<see cref="BookingLimits.MinSeats"/>, <see cref="BookingLimits.MaxSeats"/>] on create.</summary>
     [Range(BookingLimits.MinSeats, BookingLimits.MaxSeats)]
     public int Seats { get; set; }

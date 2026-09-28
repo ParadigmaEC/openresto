@@ -1,7 +1,22 @@
 volumes:
   media_data:
+  pg_data:
 
 services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_USER=openresto
+      - POSTGRES_PASSWORD=openresto
+      - POSTGRES_DB=openresto
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openresto -d openresto"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   backend:
     build:
       context: ./OpenRestoApi
@@ -11,10 +26,17 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - PORT=8080
       - CORS_ORIGINS=http://localhost:5062
+      - CONNECTION_STRING=Host=postgres;Port=5432;Database=openresto;Username=openresto;Password=openresto;Maximum Pool Size=10
+      # Development reads appsettings.Development.json, whose localhost connection string wins
+      # over CONNECTION_STRING; this key overrides it.
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=openresto;Username=openresto;Password=openresto;Maximum Pool Size=10
     env_file:
       - ./OpenRestoApi/.env.docker
     volumes:
       - media_data:/app/wwwroot/media
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/health"]
       interval: 5s

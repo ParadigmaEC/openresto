@@ -8,6 +8,11 @@ import { usePersistedState } from "@/hooks/use-persisted-state";
 import Select from "@/components/common/Select";
 import Input from "@/components/common/Input";
 import Button from "@/components/common/Button";
+import PhoneInput, {
+  EMPTY_PHONE,
+  phoneE164,
+  type PhoneValue,
+} from "@/components/common/PhoneInput";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import { Icon } from "@/components/common/Icon";
 import WaitlistRow, { waitlistPartyName } from "@/components/admin/waitlist/WaitlistRow";
@@ -53,6 +58,7 @@ export default function WaitlistScreen() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState<PhoneValue>(EMPTY_PHONE);
   const [seats, setSeats] = useState(2);
   const [adding, setAdding] = useState(false);
 
@@ -86,8 +92,12 @@ export default function WaitlistScreen() {
   };
 
   const trimmedEmail = email.trim();
+  const e164 = phoneE164(phone);
   const canAdd =
-    !adding && name.trim().length > 0 && (trimmedEmail === "" || isValidEmail(trimmedEmail));
+    !adding &&
+    name.trim().length > 0 &&
+    !!e164 &&
+    (trimmedEmail === "" || isValidEmail(trimmedEmail));
 
   const add = async () => {
     /* istanbul ignore next -- the form only renders once a location is selected */
@@ -98,11 +108,13 @@ export default function WaitlistScreen() {
       name: name.trim(),
       seats,
       email: trimmedEmail || undefined,
+      phone: e164!,
     });
     setAdding(false);
     if (result.ok) {
       setName("");
       setEmail("");
+      setPhone(EMPTY_PHONE);
       setSeats(2);
       await refresh();
     } else {
@@ -175,6 +187,18 @@ export default function WaitlistScreen() {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   testID="waitlist-add-email"
+                />
+              </View>
+              <View style={[styles.addField, styles.addPhone, styles.field]}>
+                <ThemedText style={styles.label}>{t("admin.waitlist.phoneLabel")}</ThemedText>
+                <PhoneInput
+                  value={phone}
+                  onChange={setPhone}
+                  placeholder={t("admin.bookings.form.phonePlaceholder")}
+                  numberAccessibilityLabel={t("admin.waitlist.phoneLabel")}
+                  countryAccessibilityLabel={t("admin.waitlist.phoneCountryLabel")}
+                  invalidHint={t("admin.waitlist.phoneInvalid")}
+                  testID="waitlist-add-phone"
                 />
               </View>
               <Button

@@ -15,9 +15,9 @@ public class HoldsControllerTests(TestWebAppFactory factory) : IClassFixture<Tes
     {
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Restaurant restaurant = db.Restaurants.First();
-        Section section = db.Sections.First(s => s.RestaurantId == restaurant.Id);
-        Table table = db.Tables.First(t => t.SectionId == section.Id);
+        Restaurant restaurant = db.Restaurants.OrderBy(r => r.Id).First();
+        Section section = db.Sections.OrderBy(s => s.Id).First(s => s.RestaurantId == restaurant.Id);
+        Table table = db.Tables.OrderBy(t => t.Id).First(t => t.SectionId == section.Id);
         return (restaurant.Id, section.Id, table.Id);
     }
 

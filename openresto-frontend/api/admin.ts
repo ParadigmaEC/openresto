@@ -124,6 +124,8 @@ export interface BookingDetailDto {
   endTime?: string;
   customerEmail: string;
   customerName?: string;
+  /** E.164; null on bookings taken before the phone was required. */
+  customerPhone?: string | null;
   seats: number;
   specialRequests?: string;
   bookingRef?: string;
@@ -148,6 +150,8 @@ export interface AdminCreateBookingRequest {
   date: string;
   customerEmail: string;
   customerName?: string;
+  /** E.164, e.g. +593991234567. Required. */
+  customerPhone: string;
   seats: number;
 }
 
@@ -222,6 +226,11 @@ export async function adminCreateBooking(
   if (res.status === 409) {
     const body = await res.json().catch(() => ({}));
     throw new Error(apiErrorMessage(body, "This table is already booked on that date."));
+  }
+
+  if (res.status === 400) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(apiErrorMessage(body, "Failed to create booking"));
   }
 
   if (!res.ok) throw new Error("Failed to create booking");

@@ -4,8 +4,8 @@ namespace OpenRestoApi.Core.Application.Interfaces;
 
 /// <summary>
 /// Persistence of admin user accounts (<see cref="AdminCredential"/>): login email + password
-/// hash + PVQ reset question + role. All email lookups are persisted case-insensitively via
-/// SQLite <c>lower()</c>; pass the raw email and the repo normalises it.
+/// hash + PVQ reset question + role. Email lookups compare against the database's
+/// <c>lower()</c>, so they are case-insensitive; pass the raw email and the repo normalises it.
 /// </summary>
 public interface IAdminCredentialRepository
 {

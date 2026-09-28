@@ -92,6 +92,7 @@ test.describe("Booking confirmation page", { tag: "@smoke" }, () => {
           sectionId: SECTION_ID,
           customerEmail: CONFIRM_EMAIL,
           customerName: "E2E Confirmation",
+          customerPhone: "+593991234567",
           seats: 2,
           date: slotUtc,
           holdId,

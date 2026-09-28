@@ -36,11 +36,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v7
 
-      - name: Patch backend env file for CI
-        run: |
-          sed -i 's|CONNECTION_STRING=.*|CONNECTION_STRING=Data Source=/tmp/openresto.db|' \
-            ./OpenRestoApi/.env.docker
-
       # Everything that talks to a registry or to npm runs before the clock moves. A skewed clock
       # breaks TLS validation, so builds and installs happen on the real date and only the test
       # run sees the pinned one.

@@ -53,6 +53,7 @@
     "expo-system-ui": "~57.0.3",
     "expo-web-browser": "~57.0.2",
     "i18next": "^26.4.0",
+    "libphonenumber-js": "^1.13.14",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-i18next": "^17.0.12",

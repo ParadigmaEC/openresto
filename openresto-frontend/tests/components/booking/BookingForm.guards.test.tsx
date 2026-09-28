@@ -113,6 +113,7 @@ describe("BookingForm", () => {
     // Fill name and email (both required by isValid)
     fireEvent.changeText(screen.getByPlaceholderText("Your full name"), "Test User");
     fireEvent.changeText(screen.getByPlaceholderText("your@email.com"), "test@test.com");
+    fireEvent.changeText(screen.getByPlaceholderText("099 123 4567"), "0991234567");
 
     // Click submit
     fireEvent.press(screen.getByText("Confirm Booking"));
@@ -121,9 +122,34 @@ describe("BookingForm", () => {
       expect.objectContaining({
         customerName: "Test User",
         customerEmail: "test@test.com",
+        customerPhone: "+593991234567",
         holdId: "h-123",
       })
     );
+  });
+
+  it("does not submit without a phone", () => {
+    const onSubmit = jest.fn();
+    renderWithProviders(<BookingForm restaurant={mockRestaurant} onSubmit={onSubmit} />);
+
+    fireEvent.changeText(screen.getByPlaceholderText("Your full name"), "Test User");
+    fireEvent.changeText(screen.getByPlaceholderText("your@email.com"), "test@test.com");
+    fireEvent.press(screen.getByText("Confirm Booking"));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("does not submit a phone one digit short for Ecuador, and says why", () => {
+    const onSubmit = jest.fn();
+    renderWithProviders(<BookingForm restaurant={mockRestaurant} onSubmit={onSubmit} />);
+
+    fireEvent.changeText(screen.getByPlaceholderText("Your full name"), "Test User");
+    fireEvent.changeText(screen.getByPlaceholderText("your@email.com"), "test@test.com");
+    fireEvent.changeText(screen.getByPlaceholderText("099 123 4567"), "099123456");
+    fireEvent.press(screen.getByText("Confirm Booking"));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText("Enter a valid phone number for the selected country.")).toBeTruthy();
   });
 
   it("shows warning when the selected table can't seat the party", async () => {
@@ -150,6 +176,7 @@ describe("BookingForm", () => {
 
     fireEvent.changeText(screen.getByPlaceholderText("Your full name"), "Test User");
     fireEvent.changeText(screen.getByPlaceholderText("your@email.com"), "test@test.com");
+    fireEvent.changeText(screen.getByPlaceholderText("099 123 4567"), "0991234567");
     fireEvent.press(screen.getByText("Confirm Booking"));
 
     expect(confirm).toHaveBeenCalled();
@@ -175,6 +202,7 @@ describe("BookingForm", () => {
 
     fireEvent.changeText(screen.getByPlaceholderText("Your full name"), "Test User");
     fireEvent.changeText(screen.getByPlaceholderText("your@email.com"), "test@test.com");
+    fireEvent.changeText(screen.getByPlaceholderText("099 123 4567"), "0991234567");
     fireEvent.press(screen.getByText("Confirm Booking"));
 
     await waitFor(() => expect(confirm).toHaveBeenCalled());
@@ -197,6 +225,7 @@ describe("BookingForm", () => {
 
     fireEvent.changeText(screen.getByPlaceholderText("Your full name"), "Test User");
     fireEvent.changeText(screen.getByPlaceholderText("your@email.com"), "test@test.com");
+    fireEvent.changeText(screen.getByPlaceholderText("099 123 4567"), "0991234567");
     fireEvent.press(screen.getByText("Confirm Booking"));
 
     // Guard short-circuits isValid, so the submit handler never runs.

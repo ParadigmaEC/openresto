@@ -2,6 +2,7 @@ using OpenRestoApi.Core.Application.DTOs;
 using OpenRestoApi.Core.Application.Services;
 using OpenRestoApi.Core.Application.Utilities;
 using OpenRestoApi.Core.Domain;
+using OpenRestoApi.Tests.TestInfrastructure;
 
 namespace OpenRestoApi.Tests.Services;
 
@@ -25,6 +26,7 @@ public partial class AdminServiceTests
             BookingRef = $"REF{id}",
             CustomerName = name,
             CustomerEmail = email,
+            CustomerPhone = TestPhones.Valid,
         });
         _db.SaveChanges();
     }
@@ -41,6 +43,7 @@ public partial class AdminServiceTests
         Assert.NotNull(result);
         Assert.Null(result!.CustomerName);
         Assert.Null(result.CustomerEmail);
+        Assert.Null(result.CustomerPhone);
     }
 
     [Fact]
@@ -70,6 +73,7 @@ public partial class AdminServiceTests
         Assert.NotNull(result);
         Assert.Equal("Alice Smith", result!.CustomerName);
         Assert.Equal("alice@example.com", result.CustomerEmail);
+        Assert.Equal(TestPhones.Valid, result.CustomerPhone);
     }
 
     [Fact]
@@ -84,6 +88,7 @@ public partial class AdminServiceTests
         Assert.NotNull(result);
         Assert.Equal("Alice Smith", result!.CustomerName);
         Assert.Equal("alice@example.com", result.CustomerEmail);
+        Assert.Equal(TestPhones.Valid, result.CustomerPhone);
     }
 
     [Fact]
@@ -97,6 +102,7 @@ public partial class AdminServiceTests
 
         Assert.All(results, r => Assert.Null(r.CustomerName));
         Assert.All(results, r => Assert.Null(r.CustomerEmail));
+        Assert.All(results, r => Assert.Null(r.CustomerPhone));
     }
 
     [Fact]
@@ -116,6 +122,7 @@ public partial class AdminServiceTests
         Assert.Equal(1, match.Id);
         Assert.Null(match.CustomerName);
         Assert.Null(match.CustomerEmail);
+        Assert.Null(match.CustomerPhone);
     }
 
     [Fact]
@@ -132,6 +139,7 @@ public partial class AdminServiceTests
             BookingRef = "REF1",
             CustomerName = "Alice Smith",
             CustomerEmail = "alice@example.com",
+            CustomerPhone = TestPhones.Valid,
         });
         _db.SaveChanges();
         AdminService svc = CreateService(FakeCurrentUser.ApiKey((ApiKeyScopes.Bookings, ApiKeyScopes.Read)));
@@ -152,6 +160,7 @@ public partial class AdminServiceTests
 
         BookingDetailDto result = await svc.CreateBookingAsync(new AdminCreateBookingRequest
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -163,5 +172,6 @@ public partial class AdminServiceTests
 
         Assert.Null(result.CustomerName);
         Assert.Null(result.CustomerEmail);
+        Assert.Null(result.CustomerPhone);
     }
 }
