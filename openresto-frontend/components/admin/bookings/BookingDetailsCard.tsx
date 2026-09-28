@@ -4,6 +4,7 @@ import { ThemedText } from "@/components/themed-text";
 import { theme } from "@/theme/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import { fmtLongDate, fmtMonthDay, fmtTime } from "@/utils/formatters";
+import { formatPhoneForDisplay } from "@/utils/phone";
 import { bookingDetailStyles as styles } from "./booking-detail.styles";
 
 interface BookingDetailsCardProps {
@@ -12,6 +13,8 @@ interface BookingDetailsCardProps {
     bookingRef?: string;
     customerEmail: string;
     customerName?: string;
+    /** E.164; null on bookings taken before the phone was required. */
+    customerPhone?: string | null;
     date: string;
     endTime?: string;
     seats: number;
@@ -54,7 +57,7 @@ export function BookingDetailsCard({
       : `${formatTime(startTime)} (${formatDate(startTime)}) – ${formatTime(endTime)} (${formatDate(endTime)})`;
 
   // Field order mirrors EditBookingForm/NewBookingModal (restaurant → section → table →
-  // date → time → guests → email → name → requests) so the read-only card and the edit
+  // date → time → guests → email → phone → name → requests) so the read-only card and the edit
   // form stay visually aligned when both are shown side by side.
   /**
    * `key` (rather than the localized `label`) drives the "Status" highlight style below,
@@ -100,6 +103,15 @@ export function BookingDetailsCard({
       value: t("booking.form.partySize", { count: booking.seats }),
     },
     { key: "email", label: t("booking.form.emailLabel"), value: booking.customerEmail },
+    ...(booking.customerPhone
+      ? [
+          {
+            key: "phone",
+            label: t("admin.bookings.detail.fields.phone"),
+            value: formatPhoneForDisplay(booking.customerPhone),
+          },
+        ]
+      : []),
     ...(booking.customerName
       ? [
           {

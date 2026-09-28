@@ -673,6 +673,7 @@ describe("BookingForm", () => {
     render(<BookingForm restaurant={mockRestaurantAllDays} onSubmit={onSubmit} />);
     fireEvent.changeText(screen.getByPlaceholderText("Your full name"), "Auto User");
     fireEvent.changeText(screen.getByPlaceholderText("your@email.com"), "auto@test.com");
+    fireEvent.changeText(screen.getByPlaceholderText("099 123 4567"), "0991234567");
     await act(async () => {
       fireEvent.press(screen.getByText("Confirm Booking"));
     });
@@ -1165,9 +1166,10 @@ describe("BookingForm drawer layout", () => {
         screen.getByPlaceholderText("your@email.com"),
         "frank@paddyspub.example"
       );
+      fireEvent.changeText(screen.getByPlaceholderText("099 123 4567"), "0991234567");
     };
 
-    it("keeps its own confirm until a name and email are entered", async () => {
+    it("keeps its own confirm until a name, email and phone are entered", async () => {
       renderDocked();
       await waitFor(() => expect(mockFetchAvailability).toHaveBeenCalled());
 
@@ -1175,7 +1177,18 @@ describe("BookingForm drawer layout", () => {
       expect(screen.getByTestId("dock-readout").props.children).toBe("empty");
     });
 
-    it("hands the confirm to the dock once both are in", async () => {
+    it("keeps its own confirm while the phone is still missing", async () => {
+      renderDocked();
+      await waitFor(() => expect(mockFetchAvailability).toHaveBeenCalled());
+
+      fill();
+      fireEvent.changeText(screen.getByPlaceholderText("099 123 4567"), "");
+
+      expect(screen.getAllByTestId("submit-btn")).toHaveLength(1);
+      expect(screen.getByTestId("dock-readout").props.children).toBe("empty");
+    });
+
+    it("hands the confirm to the dock once name, email and phone are in", async () => {
       renderDocked();
       await waitFor(() => expect(mockFetchAvailability).toHaveBeenCalled());
 

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenRestoApi.Core.Domain;
 using OpenRestoApi.Infrastructure.Cookies;
 using OpenRestoApi.Infrastructure.Persistence;
+using OpenRestoApi.Tests.TestInfrastructure;
 
 namespace OpenRestoApi.Tests.Integration;
 
@@ -41,6 +42,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/bookings", new
         {
+            customerPhone = TestPhones.Valid,
             restaurantId,
             sectionId,
             tableId,
@@ -53,6 +55,52 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.False(string.IsNullOrEmpty(body.GetProperty("bookingRef").GetString()));
+    }
+
+    [Theory]
+    [InlineData(null, "booking.phone_required")]
+    [InlineData("0991234567", "booking.phone_invalid")]
+    public async Task CreateBooking_WithoutAnE164Phone_Returns400WithTheCode(string? phone, string code)
+    {
+        HttpClient client = _factory.CreateClient();
+        (int restaurantId, int sectionId, int tableId) = GetSeededIds();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/bookings", new
+        {
+            customerPhone = phone,
+            restaurantId,
+            sectionId,
+            tableId,
+            date = DateTime.UtcNow.AddDays(11).ToString("yyyy-MM-ddT12:00:00"),
+            customerEmail = "nophone@test.com",
+            seats = 2,
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(code, body.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task CreateBooking_ReturnsTheNormalizedPhone()
+    {
+        HttpClient client = _factory.CreateClient();
+        (int restaurantId, int sectionId, int tableId) = GetSeededIds();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/bookings", new
+        {
+            customerPhone = "+593 99 123-4567",
+            restaurantId,
+            sectionId,
+            tableId,
+            date = DateTime.UtcNow.AddDays(12).ToString("yyyy-MM-ddT12:00:00"),
+            customerEmail = "phone@test.com",
+            seats = 2,
+        });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("+593991234567", body.GetProperty("customerPhone").GetString());
     }
 
     [Fact]
@@ -75,6 +123,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
 
         await client.PostAsJsonAsync("/api/bookings", new
         {
+            customerPhone = TestPhones.Valid,
             restaurantId,
             sectionId,
             tableId,
@@ -87,6 +136,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
         // Try to book same table on same date
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/bookings", new
         {
+            customerPhone = TestPhones.Valid,
             restaurantId,
             sectionId,
             tableId,
@@ -118,6 +168,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
 
         HttpResponseMessage createResp = await client.PostAsJsonAsync("/api/bookings", new
         {
+            customerPhone = TestPhones.Valid,
             restaurantId,
             sectionId,
             tableId,
@@ -165,6 +216,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
 
         HttpResponseMessage createResp = await client.PostAsJsonAsync("/api/bookings", new
         {
+            customerPhone = TestPhones.Valid,
             restaurantId,
             sectionId,
             tableId = table2.Id,
@@ -212,6 +264,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
         // Create a booking first
         HttpResponseMessage createResp = await client.PostAsJsonAsync("/api/bookings", new
         {
+            customerPhone = TestPhones.Valid,
             restaurantId,
             sectionId,
             tableId,
@@ -261,6 +314,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
         (int restaurantId, int sectionId, int tableId) = GetSeededIds();
         HttpResponseMessage createResp = await client.PostAsJsonAsync("/api/bookings", new
         {
+            customerPhone = TestPhones.Valid,
             restaurantId,
             sectionId,
             tableId,
@@ -294,6 +348,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
         (int restaurantId, int sectionId, int tableId) = GetSeededIds();
         HttpResponseMessage createResp = await adminClient.PostAsJsonAsync("/api/admin/bookings", new
         {
+            customerPhone = TestPhones.Valid,
             restaurantId,
             sectionId,
             tableId,
@@ -330,6 +385,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
         (int restaurantId, int sectionId, int tableId) = GetSeededIds();
         HttpResponseMessage createResp = await adminClient.PostAsJsonAsync("/api/admin/bookings", new
         {
+            customerPhone = TestPhones.Valid,
             restaurantId,
             sectionId,
             tableId,
@@ -355,7 +411,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
         HttpClient client = _factory.CreateClient();
         // Sending something that doesn't match the DTO at all or missing required fields if we had them.
         // For now, sending null body or invalid JSON structure can trigger it.
-        HttpResponseMessage response = await client.PostAsJsonAsync("/api/bookings", new { seats = "not-a-number" });
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/bookings", new { customerPhone = TestPhones.Valid, seats = "not-a-number" });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -389,7 +445,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
     {
         HttpClient client = _factory.CreateAuthenticatedClient();
         (int r, int s, int t) = GetSeededIds();
-        HttpResponseMessage createResp = await client.PostAsJsonAsync("/api/bookings", new { restaurantId = r, sectionId = s, tableId = t, date = DateTime.UtcNow.AddDays(90).ToString("yyyy-MM-ddT12:00:00"), customerEmail = "del@test.com", seats = 2 });
+        HttpResponseMessage createResp = await client.PostAsJsonAsync("/api/bookings", new { customerPhone = TestPhones.Valid, restaurantId = r, sectionId = s, tableId = t, date = DateTime.UtcNow.AddDays(90).ToString("yyyy-MM-ddT12:00:00"), customerEmail = "del@test.com", seats = 2 });
         int id = (await createResp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
 
         HttpResponseMessage response = await client.DeleteAsync($"/api/bookings/{id}");
@@ -401,7 +457,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
     {
         HttpClient client = _factory.CreateClient();
         (int r, int s, int t) = GetSeededIds();
-        HttpResponseMessage createResp = await client.PostAsJsonAsync("/api/bookings", new { restaurantId = r, sectionId = s, tableId = t, date = DateTime.UtcNow.AddDays(80).ToString("yyyy-MM-ddT12:00:00"), customerEmail = "recent@test.com", seats = 2 });
+        HttpResponseMessage createResp = await client.PostAsJsonAsync("/api/bookings", new { customerPhone = TestPhones.Valid, restaurantId = r, sectionId = s, tableId = t, date = DateTime.UtcNow.AddDays(80).ToString("yyyy-MM-ddT12:00:00"), customerEmail = "recent@test.com", seats = 2 });
 
         // Extract the cookie from the response
         if (createResp.Headers.TryGetValues("Set-Cookie", out IEnumerable<string>? cookies))
@@ -441,6 +497,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
         // fitting free table across Pasta Place is T2 (2 seats).
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/bookings", new
         {
+            customerPhone = TestPhones.Valid,
             restaurantId,
             date,
             customerEmail = "auto@test.com",
@@ -476,6 +533,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
         // Consume that hold with an auto-assign booking.
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/bookings", new
         {
+            customerPhone = TestPhones.Valid,
             restaurantId,
             date,
             customerEmail = "auto2@test.com",
@@ -507,6 +565,7 @@ public class BookingsControllerTests(TestWebAppFactory factory) : IClassFixture<
             HttpClient c = _factory.CreateClient();
             HttpResponseMessage r = await c.PostAsJsonAsync("/api/bookings", new
             {
+                customerPhone = TestPhones.Valid,
                 restaurantId,
                 date,
                 customerEmail = $"race{i}@test.com",

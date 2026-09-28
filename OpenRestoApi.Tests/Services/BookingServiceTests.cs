@@ -9,6 +9,7 @@ using OpenRestoApi.Core.Application.Utilities;
 using OpenRestoApi.Core.Domain;
 using OpenRestoApi.Infrastructure.Persistence;
 using OpenRestoApi.Infrastructure.Persistence.Repositories;
+using OpenRestoApi.Tests.TestInfrastructure;
 
 namespace OpenRestoApi.Tests.Services;
 
@@ -87,6 +88,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -111,6 +113,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -144,9 +147,9 @@ public partial class BookingServiceTests
         var date = DateTime.UtcNow.AddDays(7);
 
         BookingDto a = await svc.CreateBookingAsync(new BookingDto
-        { RestaurantId = 1, SectionId = 1, TableId = 1, CustomerEmail = "a@x.com", Seats = 2, Date = date });
+        { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, CustomerEmail = "a@x.com", Seats = 2, Date = date });
         BookingDto b = await svc.CreateBookingAsync(new BookingDto
-        { RestaurantId = 1, SectionId = 1, TableId = 2, CustomerEmail = "b@x.com", Seats = 2, Date = date });
+        { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 2, CustomerEmail = "b@x.com", Seats = 2, Date = date });
 
         Assert.NotEqual(a.BookingRef, b.BookingRef);
     }
@@ -165,6 +168,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -188,6 +192,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -208,6 +213,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -220,6 +226,7 @@ public partial class BookingServiceTests
 
         var dto2 = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -248,6 +255,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db, holdMock.Object);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -276,6 +284,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db, holdMock.Object);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -309,6 +318,7 @@ public partial class BookingServiceTests
         DateTime date = DateTime.UtcNow.AddDays(7);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -337,6 +347,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await CreateService(db).CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -358,6 +369,7 @@ public partial class BookingServiceTests
         DateTime date = DateTime.UtcNow.AddDays(7);
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -395,6 +407,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -435,6 +448,7 @@ public partial class BookingServiceTests
         // but inside the restaurant's configured 90-minute window.
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -457,6 +471,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -482,6 +497,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         BookingDto created = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -518,6 +534,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         BookingDto created = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -546,6 +563,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         BookingDto created = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -597,9 +615,9 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         var date = DateTime.UtcNow.AddDays(7);
         await svc.CreateBookingAsync(new BookingDto
-        { RestaurantId = 1, SectionId = 1, TableId = 1, CustomerEmail = "a@x.com", Seats = 2, Date = date });
+        { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, CustomerEmail = "a@x.com", Seats = 2, Date = date });
         await svc.CreateBookingAsync(new BookingDto
-        { RestaurantId = 2, SectionId = 2, TableId = 2, CustomerEmail = "b@x.com", Seats = 2, Date = date });
+        { CustomerPhone = TestPhones.Valid, RestaurantId = 2, SectionId = 2, TableId = 2, CustomerEmail = "b@x.com", Seats = 2, Date = date });
 
         var results = (await svc.GetBookingsByRestaurantAsync(1)).ToList();
 
@@ -618,6 +636,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         BookingDto created = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -642,6 +661,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -665,6 +685,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -691,6 +712,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -717,6 +739,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -742,6 +765,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 999, // does not exist
@@ -792,6 +816,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "guest@example.com",
             Seats = 2,
@@ -834,6 +859,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "guest@example.com",
             Seats = 2,
@@ -851,7 +877,7 @@ public partial class BookingServiceTests
         using AppDbContext db = TestDbFactory.Create(nameof(CreateBookingAsync_Throws_WhenBookingInPast));
         TestSeed.BasicRestaurant(db);
         BookingService svc = CreateService(db);
-        var dto = new BookingDto { RestaurantId = 1, Date = DateTime.UtcNow.AddHours(-1) };
+        var dto = new BookingDto { CustomerPhone = TestPhones.Valid, RestaurantId = 1, Date = DateTime.UtcNow.AddHours(-1) };
         await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(dto));
     }
 
@@ -862,10 +888,10 @@ public partial class BookingServiceTests
         TestSeed.BasicRestaurant(db);
         BookingService svc = CreateService(db);
         DateTime date = DateTime.UtcNow.AddHours(1);
-        BookingDto created = await svc.CreateBookingAsync(new BookingDto { RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 });
+        BookingDto created = await svc.CreateBookingAsync(new BookingDto { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 });
         db.Entry((await db.Bookings.FindAsync(created.Id))!).State = EntityState.Detached;
 
-        var dto = new BookingDto { Id = created.Id, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2, EndTime = null };
+        var dto = new BookingDto { CustomerPhone = TestPhones.Valid, Id = created.Id, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2, EndTime = null };
         await svc.UpdateBookingAsync(created.Id, dto);
         Booking inDb = await db.Bookings.FirstAsync(b => b.Id == created.Id);
         Assert.Equal(date.AddHours(1), inDb.EndTime);
@@ -880,7 +906,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         DateTime date = DateTime.UtcNow.AddHours(1);
         BookingDto created = await svc.CreateBookingAsync(
-            new BookingDto { RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 4 });
+            new BookingDto { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 4 });
         db.Entry((await db.Bookings.FindAsync(created.Id))!).State = EntityState.Detached;
 
         // Now cap spare seats at 1 and shrink the party to 2 → the 4-seat table is too large.
@@ -889,6 +915,7 @@ public partial class BookingServiceTests
 
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             Id = created.Id,
             RestaurantId = 1,
             SectionId = 1,
@@ -912,11 +939,12 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         DateTime date = DateTime.UtcNow.AddHours(1);
         BookingDto created = await svc.CreateBookingAsync(
-            new BookingDto { RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 });
+            new BookingDto { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 });
         db.Entry((await db.Bookings.FindAsync(created.Id))!).State = EntityState.Detached;
 
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             Id = created.Id,
             RestaurantId = 1,
             SectionId = 1,
@@ -939,10 +967,10 @@ public partial class BookingServiceTests
         TestSeed.BasicRestaurant(db);
         BookingService svc = CreateService(db);
         DateTime date = DateTime.UtcNow.AddHours(1);
-        BookingDto created = await svc.CreateBookingAsync(new BookingDto { RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 });
+        BookingDto created = await svc.CreateBookingAsync(new BookingDto { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 });
         db.Entry((await db.Bookings.FindAsync(created.Id))!).State = EntityState.Detached;
 
-        var dto = new BookingDto { Id = created.Id, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, EndTime = date.AddHours(-1), Seats = 2 };
+        var dto = new BookingDto { CustomerPhone = TestPhones.Valid, Id = created.Id, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, EndTime = date.AddHours(-1), Seats = 2 };
         await svc.UpdateBookingAsync(created.Id, dto);
         Booking inDb = await db.Bookings.FirstAsync(b => b.Id == created.Id);
         Assert.Equal(date.AddHours(1), inDb.EndTime);
@@ -959,10 +987,10 @@ public partial class BookingServiceTests
 
         BookingService svc = CreateService(db);
         DateTime date = DateTime.UtcNow.AddHours(1);
-        BookingDto created = await svc.CreateBookingAsync(new BookingDto { RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 });
+        BookingDto created = await svc.CreateBookingAsync(new BookingDto { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 });
         db.Entry((await db.Bookings.FindAsync(created.Id))!).State = EntityState.Detached;
 
-        var dto = new BookingDto { Id = created.Id, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2, EndTime = null };
+        var dto = new BookingDto { CustomerPhone = TestPhones.Valid, Id = created.Id, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2, EndTime = null };
         await svc.UpdateBookingAsync(created.Id, dto);
         Booking inDb = await db.Bookings.FirstAsync(b => b.Id == created.Id);
         Assert.Equal(date.AddMinutes(90), inDb.EndTime);
@@ -979,10 +1007,10 @@ public partial class BookingServiceTests
 
         BookingService svc = CreateService(db);
         DateTime date = DateTime.UtcNow.AddHours(1);
-        BookingDto created = await svc.CreateBookingAsync(new BookingDto { RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 });
+        BookingDto created = await svc.CreateBookingAsync(new BookingDto { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 });
         db.Entry((await db.Bookings.FindAsync(created.Id))!).State = EntityState.Detached;
 
-        var dto = new BookingDto { Id = created.Id, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, EndTime = date.AddHours(-1), Seats = 2 };
+        var dto = new BookingDto { CustomerPhone = TestPhones.Valid, Id = created.Id, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, EndTime = date.AddHours(-1), Seats = 2 };
         await svc.UpdateBookingAsync(created.Id, dto);
         Booking inDb = await db.Bookings.FirstAsync(b => b.Id == created.Id);
         Assert.Equal(date.AddMinutes(90), inDb.EndTime);
@@ -1001,7 +1029,7 @@ public partial class BookingServiceTests
         db.Entry((await db.Bookings.FindAsync(1))!).State = EntityState.Detached;
 
         BookingService svc = CreateService(db);
-        var dto = new BookingDto { Id = 1, RestaurantId = 1, Date = DateTime.UtcNow.AddHours(1), Seats = 99, EndTime = null };
+        var dto = new BookingDto { CustomerPhone = TestPhones.Valid, Id = 1, RestaurantId = 1, Date = DateTime.UtcNow.AddHours(1), Seats = 99, EndTime = null };
 
         await svc.UpdateBookingAsync(1, dto);
 
@@ -1025,7 +1053,7 @@ public partial class BookingServiceTests
         db.Entry((await db.Bookings.FindAsync(1))!).State = EntityState.Detached;
 
         BookingService svc = CreateService(db);
-        var dto = new BookingDto { Id = 1, RestaurantId = 999, TableId = 1, SectionId = 1, Date = date, Seats = 2, EndTime = null };
+        var dto = new BookingDto { CustomerPhone = TestPhones.Valid, Id = 1, RestaurantId = 999, TableId = 1, SectionId = 1, Date = date, Seats = 2, EndTime = null };
 
         await svc.UpdateBookingAsync(1, dto);
 
@@ -1064,11 +1092,11 @@ public partial class BookingServiceTests
         TestSeed.BasicRestaurant(db);
         BookingService svc = CreateService(db);
         DateTime date = DateTime.UtcNow.AddHours(1);
-        BookingDto created = await svc.CreateBookingAsync(new BookingDto { RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 });
+        BookingDto created = await svc.CreateBookingAsync(new BookingDto { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 });
         db.Entry((await db.Bookings.FindAsync(created.Id))!).State = EntityState.Detached;
 
         DateTime explicitValidEndTime = date.AddMinutes(45);
-        var dto = new BookingDto { Id = created.Id, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2, EndTime = explicitValidEndTime };
+        var dto = new BookingDto { CustomerPhone = TestPhones.Valid, Id = created.Id, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2, EndTime = explicitValidEndTime };
         await svc.UpdateBookingAsync(created.Id, dto);
 
         Booking inDb = await db.Bookings.FirstAsync(b => b.Id == created.Id);
@@ -1102,6 +1130,7 @@ public partial class BookingServiceTests
         DateTime date = DateTime.UtcNow.AddHours(1);
         BookingDto created = await svcForCreate.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2, CustomerEmail = "guest@example.com"
         });
 
@@ -1139,6 +1168,7 @@ public partial class BookingServiceTests
         DateTime date = DateTime.UtcNow.AddHours(1);
         BookingDto created = await svcForCreate.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2, CustomerEmail = "guest@example.com"
         });
 
@@ -1178,7 +1208,7 @@ public partial class BookingServiceTests
         using AppDbContext db = TestDbFactory.Create(nameof(CancelBookingAsync_ReturnsFalse_WhenEmailMismatch));
         TestSeed.BasicRestaurant(db);
         BookingService svc = CreateService(db);
-        BookingDto created = await svc.CreateBookingAsync(new BookingDto { RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow.AddHours(1), CustomerEmail = "real@test.com", Seats = 2 });
+        BookingDto created = await svc.CreateBookingAsync(new BookingDto { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow.AddHours(1), CustomerEmail = "real@test.com", Seats = 2 });
         Assert.False(await svc.CancelBookingAsync(created.BookingRef!, "wrong@test.com"));
     }
 
@@ -1188,7 +1218,7 @@ public partial class BookingServiceTests
         using AppDbContext db = TestDbFactory.Create(nameof(CancelBookingAsync_ReturnsTrue_WhenAlreadyCancelled));
         TestSeed.BasicRestaurant(db);
         BookingService svc = CreateService(db);
-        BookingDto created = await svc.CreateBookingAsync(new BookingDto { RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow.AddHours(1), CustomerEmail = "test@test.com", Seats = 2 });
+        BookingDto created = await svc.CreateBookingAsync(new BookingDto { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow.AddHours(1), CustomerEmail = "test@test.com", Seats = 2 });
         await svc.CancelBookingAsync(created.BookingRef!, "test@test.com");
         Assert.True(await svc.CancelBookingAsync(created.BookingRef!, "test@test.com"));
     }
@@ -1199,7 +1229,7 @@ public partial class BookingServiceTests
         using AppDbContext db = TestDbFactory.Create(nameof(CancelBookingAsync_Throws_WhenBookingDateIsInThePast));
         TestSeed.BasicRestaurant(db);
         BookingService svc = CreateService(db);
-        BookingDto created = await svc.CreateBookingAsync(new BookingDto { RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow.AddHours(1), CustomerEmail = "test@test.com", Seats = 2 });
+        BookingDto created = await svc.CreateBookingAsync(new BookingDto { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow.AddHours(1), CustomerEmail = "test@test.com", Seats = 2 });
 
         Booking booking = await db.Bookings.FirstAsync(b => b.Id == created.Id);
         booking.Date = DateTime.UtcNow.AddHours(-1);
@@ -1218,7 +1248,7 @@ public partial class BookingServiceTests
         using AppDbContext db = TestDbFactory.Create(nameof(CancelBookingAsync_Succeeds_WithinFiveMinuteGracePeriod));
         TestSeed.BasicRestaurant(db);
         BookingService svc = CreateService(db);
-        BookingDto created = await svc.CreateBookingAsync(new BookingDto { RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow.AddHours(1), CustomerEmail = "test@test.com", Seats = 2 });
+        BookingDto created = await svc.CreateBookingAsync(new BookingDto { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow.AddHours(1), CustomerEmail = "test@test.com", Seats = 2 });
 
         Booking booking = await db.Bookings.FirstAsync(b => b.Id == created.Id);
         booking.Date = DateTime.UtcNow.AddMinutes(-4);
@@ -1233,7 +1263,7 @@ public partial class BookingServiceTests
         using AppDbContext db = TestDbFactory.Create(nameof(CancelBookingAsync_Throws_JustOutsideFiveMinuteGracePeriod));
         TestSeed.BasicRestaurant(db);
         BookingService svc = CreateService(db);
-        BookingDto created = await svc.CreateBookingAsync(new BookingDto { RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow.AddHours(1), CustomerEmail = "test@test.com", Seats = 2 });
+        BookingDto created = await svc.CreateBookingAsync(new BookingDto { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow.AddHours(1), CustomerEmail = "test@test.com", Seats = 2 });
 
         Booking booking = await db.Bookings.FirstAsync(b => b.Id == created.Id);
         booking.Date = DateTime.UtcNow.AddMinutes(-6);
@@ -1258,6 +1288,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1, SectionId = 1, TableId = 1,
             CustomerEmail = "guest@example.com", Seats = 2,
             // Relative future date — the rest of this file uses AddDays(7); a hardcoded date rots
@@ -1282,6 +1313,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1, SectionId = 1, TableId = 1,
             CustomerEmail = "guest@example.com", Seats = 2,
             Date = DateTime.UtcNow.AddDays(7),
@@ -1316,6 +1348,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -1341,6 +1374,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         var dto = new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -1364,6 +1398,7 @@ public partial class BookingServiceTests
         BookingService svc = CreateService(db);
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -1400,6 +1435,7 @@ public partial class BookingServiceTests
 
         await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -1428,6 +1464,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -1455,6 +1492,7 @@ public partial class BookingServiceTests
         // 3 seats — fits T2(4)/T3(6)/P2(4) but not T1(2)/P1(2). Smallest fitting is T2.
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "guest@example.com",
             Seats = 3,
@@ -1479,6 +1517,7 @@ public partial class BookingServiceTests
         // T1(2)/P1(2) qualify (0 spare). T2/T3/P2 are excluded by the oversize cap.
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "guest@example.com",
             Seats = 2,
@@ -1504,6 +1543,7 @@ public partial class BookingServiceTests
         // the party at an oversized table.
         await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "guest@example.com",
             Seats = 3,
@@ -1521,6 +1561,7 @@ public partial class BookingServiceTests
         // 2 seats — both T1(2) and P1(2) fit. Tie-break by TableId: T1 (id 1) < P1 (id 4).
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "guest@example.com",
             Seats = 2,
@@ -1547,6 +1588,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "guest@example.com",
             Seats = 2,
@@ -1578,6 +1620,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "guest@example.com",
             Seats = 2,
@@ -1599,6 +1642,7 @@ public partial class BookingServiceTests
         // 8 seats — no table fits (largest in SeedMultiTableRestaurant is 6).
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "guest@example.com",
             Seats = 8,
@@ -1619,6 +1663,7 @@ public partial class BookingServiceTests
 
         ValidationException ex = await Assert.ThrowsAsync<ValidationException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             TableId = tableId,
             SectionId = sectionId,
@@ -1658,6 +1703,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "guest@example.com",
             Seats = 4,
@@ -1687,6 +1733,7 @@ public partial class BookingServiceTests
 
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "guest@example.com",
             Seats = 2,
@@ -1710,6 +1757,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "persist@example.com",
             Seats = 2,
@@ -1767,6 +1815,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "group-numeric@example.com",
             Seats = 6,
@@ -1788,6 +1837,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "group@example.com",
             Seats = 6,
@@ -1822,6 +1872,7 @@ public partial class BookingServiceTests
 
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "group@example.com",
             Seats = 6,
@@ -1846,6 +1897,7 @@ public partial class BookingServiceTests
 
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "group@example.com",
             Seats = 6,
@@ -1871,6 +1923,7 @@ public partial class BookingServiceTests
         // the hold check for it — members always come from the persisted group.
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "sneaky@example.com",
             Seats = 6,
@@ -1894,6 +1947,7 @@ public partial class BookingServiceTests
 
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "group@example.com",
             Seats = 6,
@@ -1916,6 +1970,7 @@ public partial class BookingServiceTests
 
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "group@example.com",
             Seats = 2,
@@ -1936,6 +1991,7 @@ public partial class BookingServiceTests
 
         await Assert.ThrowsAsync<NotFoundException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "group@example.com",
             Seats = 6,
@@ -1957,6 +2013,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "auto-group@example.com",
             Seats = 6,
@@ -1995,6 +2052,7 @@ public partial class BookingServiceTests
 
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "group2@example.com",
             Seats = 6,
@@ -2024,6 +2082,7 @@ public partial class BookingServiceTests
 
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "member@example.com",
             Seats = 3,
@@ -2062,6 +2121,7 @@ public partial class BookingServiceTests
 
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "group1@example.com",
             Seats = 6,
@@ -2085,6 +2145,7 @@ public partial class BookingServiceTests
 
         BookingDto created = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "display@example.com",
             Seats = 6,
@@ -2115,6 +2176,7 @@ public partial class BookingServiceTests
 
         await Assert.ThrowsAsync<ValidationException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "x@example.com",
             Seats = seats,

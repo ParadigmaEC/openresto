@@ -38,6 +38,7 @@ test.describe("Admin extend bookings", () => {
         date: pastUtcISO(30),
         customerEmail: "e2e-extend@example.com",
         customerName: "E2E Extend Test",
+        customerPhone: "+593991234567",
         seats: 2,
       },
     });

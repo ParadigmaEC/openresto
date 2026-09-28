@@ -13,6 +13,7 @@ const entry = (over: Partial<WaitlistEntry> = {}): WaitlistEntry => ({
   number: 7,
   name: "Ada",
   email: null,
+  phone: null,
   seats: 3,
   status: "waiting",
   joinedAt: new Date(Date.now() - 12 * 60_000).toISOString(),
@@ -151,5 +152,23 @@ describe("WaitlistRow", () => {
       />
     );
     expect(screen.getByText(/ada@example.com/)).toBeTruthy();
+  });
+
+  it("shows the phone spaced for reading, and nothing where there is none", () => {
+    const first = renderWithProviders(
+      <WaitlistRow
+        entry={entry({ phone: "+593991234567" })}
+        busy={false}
+        isLast={false}
+        onAction={jest.fn()}
+      />
+    );
+    expect(screen.getByText(/\+593 99 123 4567/)).toBeTruthy();
+    first.unmount();
+
+    renderWithProviders(
+      <WaitlistRow entry={entry()} busy={false} isLast={false} onAction={jest.fn()} />
+    );
+    expect(screen.queryByText(/\+593/)).toBeNull();
   });
 });

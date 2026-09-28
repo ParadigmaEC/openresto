@@ -26,7 +26,7 @@ public class WaitlistService(
     /// <summary>A party still queued this long after joining has almost certainly gone, and would clog the queue.</summary>
     public static readonly TimeSpan StaleAfter = TimeSpan.FromHours(6);
 
-    /// <summary>Entries hold a guest's name and email, so they are deleted this long after joining.</summary>
+    /// <summary>Entries hold a guest's name, email and phone, so they are deleted this long after joining.</summary>
     public static readonly TimeSpan RetainFor = TimeSpan.FromDays(7);
 
     private const string RefAlphabet = "abcdefghijkmnpqrstuvwxyz23456789";
@@ -187,6 +187,7 @@ public class WaitlistService(
                 Number = e.Number,
                 Name = e.Name,
                 Email = e.Email,
+                Phone = e.Phone,
                 Seats = e.Seats,
                 Status = StatusName(e.Status),
                 JoinedAt = e.CreatedAt,
@@ -251,6 +252,7 @@ public class WaitlistService(
             EndTime = now.AddMinutes(BookingDuration.For(restaurant, entry.Seats)),
             CustomerName = entry.Name,
             CustomerEmail = entry.Email,
+            CustomerPhone = entry.Phone,
             Seats = entry.Seats,
             BookingRef = BookingRefFactory.GenerateFor(restaurant),
             Status = BookingStatus.Seated,
@@ -304,6 +306,8 @@ public class WaitlistService(
             throw new ValidationException("That email address doesn't look right.") { Code = ErrorCodes.WaitlistEmailInvalid };
         }
 
+        string phone = CustomerPhone.Normalize(req.Phone);
+
         if (WaitEstimator.EstimateSeatingTimes(restaurant, new[] { req.Seats }, new Dictionary<int, DateTime>(), now)[0] is null)
         {
             throw new ConflictException($"No table here can seat a party of {req.Seats}.")
@@ -320,6 +324,7 @@ public class WaitlistService(
             Name = name,
             Seats = req.Seats,
             Email = email,
+            Phone = phone,
             Locale = SupportedLocales.IsSupported(req.Locale) ? req.Locale! : "en",
             Status = WaitlistStatus.Waiting,
             CreatedAt = now,
@@ -437,7 +442,7 @@ public class WaitlistService(
 
     /// <summary>
     /// Entries are named by ticket number, never by the guest: the audit trail outlives the
-    /// seven-day retention that deletes the name and email.
+    /// seven-day retention that deletes the name, email and phone.
     /// </summary>
     private void Describe(string action, WaitlistEntry entry, string summary)
         => _audit.Describe(action, AuditTargets.WaitlistEntry, AuditTargets.IdOf(entry.Id),

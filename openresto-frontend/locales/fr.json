@@ -76,7 +76,12 @@
       "tableLabel": "Table",
       "timeLabel": "Heure",
       "timezoneHint": "Tous les horaires sont indiqués en {{timezone}} (il y est actuellement {{time}})",
-      "walkInsOnlyReason": "Sans réservation uniquement"
+      "walkInsOnlyReason": "Sans réservation uniquement",
+      "phoneLabel": "Téléphone",
+      "phonePlaceholder": "099 123 4567",
+      "phoneAccessibilityLabel": "Numéro de téléphone",
+      "phoneCountryAccessibilityLabel": "Indicatif du pays",
+      "phoneInvalid": "Saisissez un numéro de téléphone valide pour le pays sélectionné."
     },
     "guestDetails": {
       "bookedUnder": "Réservé au nom de {{name}}",
@@ -383,7 +388,9 @@
       "table_not_in_section": "Table introuvable dans la salle indiquée.",
       "walk_in_only": "Cet établissement accepte uniquement les visites sans réservation et ne prend pas de réservations en ligne.",
       "walk_in_only_today": "Cet établissement accepte uniquement les visites sans réservation le jour sélectionné. Choisissez un autre jour ou présentez-vous sur place.",
-      "pacing_full": "Seulement {{remaining}} convives de plus peuvent arriver à {{time}}. Veuillez choisir un autre horaire."
+      "pacing_full": "Seulement {{remaining}} convives de plus peuvent arriver à {{time}}. Veuillez choisir un autre horaire.",
+      "phone_required": "Un numéro de téléphone est requis.",
+      "phone_invalid": "Veuillez saisir un numéro de téléphone valide, avec son indicatif pays."
     },
     "brand": {
       "accent_color_invalid": "Code hexadécimal de couleur d'accentuation invalide.",
@@ -904,7 +911,11 @@
         "namePlaceholder": "Nom complet",
         "specialRequestsPlaceholder": "Régime alimentaire, occasion, notes",
         "tableOptionLabel": "{{name}} ({{seats}})",
-        "tableFallbackName": "Table {{id}}"
+        "tableFallbackName": "Table {{id}}",
+        "guestPhone": "Téléphone du client",
+        "phonePlaceholder": "099 123 4567",
+        "phoneCountryLabel": "Indicatif du pays du client",
+        "phoneInvalid": "Saisissez un numéro de téléphone valide pour le pays sélectionné."
       },
       "detail": {
         "heading": "Détails de la réservation",
@@ -923,7 +934,8 @@
           "party": "Convives",
           "name": "Nom",
           "noShows": "Absences",
-          "requests": "Demandes"
+          "requests": "Demandes",
+          "phone": "Téléphone"
         },
         "noRequests": "Aucune",
         "timeRangeWithDuration": "{{range}} ({{mins}} min)",
@@ -2137,7 +2149,10 @@
       "removeLabel": "Retirer {{name}}",
       "removeTitle": "Retirer le groupe",
       "removeConfirm": "Retirer {{name}} de la liste d'attente ?",
-      "loadFailed": "Impossible de charger la liste d'attente."
+      "loadFailed": "Impossible de charger la liste d'attente.",
+      "phoneLabel": "Téléphone",
+      "phoneCountryLabel": "Indicatif du pays",
+      "phoneInvalid": "Saisissez un numéro de téléphone valide pour le pays sélectionné."
     }
   }
 }

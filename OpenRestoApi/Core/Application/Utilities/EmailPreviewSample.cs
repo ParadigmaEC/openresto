@@ -12,6 +12,7 @@ public static class EmailPreviewSample
 {
     public const string CustomerName = "Alex Morgan";
     public const string CustomerEmail = "alex.morgan@example.com";
+    public const string CustomerPhone = "+14155550123";
     public const string SpecialRequests = "Window table if one is free. We're celebrating an anniversary.";
     public const int Seats = 2;
 
@@ -67,6 +68,7 @@ public static class EmailPreviewSample
             BookingRef = RefFor(restaurant.BookingRefFormat),
             CustomerName = CustomerName,
             CustomerEmail = CustomerEmail,
+            CustomerPhone = CustomerPhone,
             SpecialRequests = SpecialRequests,
             Seats = Seats,
             Section = section,

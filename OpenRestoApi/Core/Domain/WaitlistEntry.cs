@@ -24,6 +24,9 @@ public class WaitlistEntry
     public int Seats { get; set; }
     public string? Email { get; set; }
 
+    /// <summary>E.164 (see <c>CustomerPhone</c>). Null on entries that joined before phones were collected.</summary>
+    public string? Phone { get; set; }
+
     /// <summary>The UI locale the guest joined under, so the "table ready" email reads in their language.</summary>
     public string Locale { get; set; } = "en";
 

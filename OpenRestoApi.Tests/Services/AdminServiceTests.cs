@@ -5,9 +5,11 @@ using OpenRestoApi.Core.Application.DTOs;
 using OpenRestoApi.Core.Application.Exceptions;
 using OpenRestoApi.Core.Application.Interfaces;
 using OpenRestoApi.Core.Application.Services;
+using OpenRestoApi.Core.Application.Utilities;
 using OpenRestoApi.Core.Domain;
 using OpenRestoApi.Infrastructure.Persistence;
 using OpenRestoApi.Infrastructure.Persistence.Repositories;
+using OpenRestoApi.Tests.TestInfrastructure;
 
 namespace OpenRestoApi.Tests.Services;
 
@@ -544,12 +546,14 @@ public partial class AdminServiceTests : IDisposable
     [InlineData("ali")]           // partial name
     [InlineData("ALICE@EX")]      // partial email, wrong case
     [InlineData("bc12")]          // mid-string slice of the booking reference
-    public async Task GetBookingsAsync_QueryFilter_MatchesNameEmailAndRefPartially(string query)
+    [InlineData("99123")]         // slice of the phone
+    [InlineData("+593 99-123")]   // the phone as written, separators and all
+    public async Task GetBookingsAsync_QueryFilter_MatchesNameEmailRefAndPhonePartially(string query)
     {
         AdminService svc = CreateService();
         SeedBase(1);
-        _db.Bookings.Add(new Booking { Id = 1, RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow, BookingRef = "ABC123", CustomerName = "Alice Smith", CustomerEmail = "Alice@Example.com" });
-        _db.Bookings.Add(new Booking { Id = 2, RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow, BookingRef = "XYZ789", CustomerName = "Bob Jones", CustomerEmail = "bob@example.com" });
+        _db.Bookings.Add(new Booking { Id = 1, RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow, BookingRef = "ABC123", CustomerName = "Alice Smith", CustomerEmail = "Alice@Example.com", CustomerPhone = "+593991234567" });
+        _db.Bookings.Add(new Booking { Id = 2, RestaurantId = 1, SectionId = 1, TableId = 1, Date = DateTime.UtcNow, BookingRef = "XYZ789", CustomerName = "Bob Jones", CustomerEmail = "bob@example.com", CustomerPhone = "+14155550100" });
         await _db.SaveChangesAsync();
 
         List<BookingDetailDto> results = await svc.GetBookingsAsync(1, null, "all", query: query);
@@ -580,7 +584,7 @@ public partial class AdminServiceTests : IDisposable
     public async Task CreateBookingAsync_Throws_WhenTableNotFound()
     {
         AdminService svc = CreateService();
-        var req = new AdminCreateBookingRequest { RestaurantId = 1, SectionId = 1, TableId = 999 };
+        var req = new AdminCreateBookingRequest { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 999 };
         await Assert.ThrowsAsync<ValidationException>(() => svc.CreateBookingAsync(req));
     }
 
@@ -591,7 +595,7 @@ public partial class AdminServiceTests : IDisposable
         SeedBase(1);
         _db.Restaurants.Add(new Restaurant { Id = 2, Name = "Other" });
         await _db.SaveChangesAsync();
-        var req = new AdminCreateBookingRequest { RestaurantId = 2, SectionId = 1, TableId = 1 };
+        var req = new AdminCreateBookingRequest { CustomerPhone = TestPhones.Valid, RestaurantId = 2, SectionId = 1, TableId = 1 };
         await Assert.ThrowsAsync<ValidationException>(() => svc.CreateBookingAsync(req));
     }
 
@@ -604,7 +608,7 @@ public partial class AdminServiceTests : IDisposable
         _db.Bookings.Add(new Booking { RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, BookingRef = "B1" });
         await _db.SaveChangesAsync();
 
-        var req = new AdminCreateBookingRequest { RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 };
+        var req = new AdminCreateBookingRequest { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 };
         await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(req));
     }
 
@@ -624,6 +628,7 @@ public partial class AdminServiceTests : IDisposable
 
         BookingDetailDto result = await svc.CreateBookingAsync(new AdminCreateBookingRequest
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1, SectionId = 1, TableId = 1, Seats = 4, Date = date, CustomerEmail = "door@example.com",
         });
 
@@ -636,7 +641,7 @@ public partial class AdminServiceTests : IDisposable
         AdminService svc = CreateService();
         SeedBase(1);
         await _db.SaveChangesAsync();
-        var req = new AdminCreateBookingRequest { RestaurantId = 1, SectionId = 1, TableId = 1, Seats = 10, Date = DateTime.UtcNow };
+        var req = new AdminCreateBookingRequest { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Seats = 10, Date = DateTime.UtcNow };
         await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(req));
     }
 
@@ -656,6 +661,7 @@ public partial class AdminServiceTests : IDisposable
 
         BookingDetailDto result = await svc.CreateBookingAsync(new AdminCreateBookingRequest
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -664,6 +670,43 @@ public partial class AdminServiceTests : IDisposable
         });
 
         Assert.Equal(expectDigits, result.BookingRef!.All(char.IsAsciiDigit));
+    }
+
+    [Theory]
+    [InlineData(null, ErrorCodes.BookingPhoneRequired)]
+    [InlineData("", ErrorCodes.BookingPhoneRequired)]
+    [InlineData("0991234567", ErrorCodes.BookingPhoneInvalid)]
+    public async Task CreateBookingAsync_RejectsAMissingOrMalformedPhone(string? phone, string code)
+    {
+        AdminService svc = CreateService();
+        SeedBase(1);
+        await _db.SaveChangesAsync();
+
+        ValidationException ex = await Assert.ThrowsAsync<ValidationException>(() => svc.CreateBookingAsync(new AdminCreateBookingRequest
+        {
+            RestaurantId = 1, SectionId = 1, TableId = 1, Seats = 2, Date = DateTime.UtcNow.AddDays(1),
+            CustomerEmail = "door@example.com", CustomerPhone = phone,
+        }));
+
+        Assert.Equal(code, ex.Code);
+        Assert.Empty(_db.Bookings);
+    }
+
+    [Fact]
+    public async Task CreateBookingAsync_StoresTheNormalizedPhone()
+    {
+        AdminService svc = CreateService();
+        SeedBase(1);
+        await _db.SaveChangesAsync();
+
+        BookingDetailDto result = await svc.CreateBookingAsync(new AdminCreateBookingRequest
+        {
+            RestaurantId = 1, SectionId = 1, TableId = 1, Seats = 2, Date = DateTime.UtcNow.AddDays(1),
+            CustomerEmail = "door@example.com", CustomerPhone = "+593 99 123 4567",
+        });
+
+        Assert.Equal("+593991234567", result.CustomerPhone);
+        Assert.Equal("+593991234567", _db.Bookings.Single().CustomerPhone);
     }
 
     // ── Configurable booking duration (#135) ────────────────────────────────
@@ -682,7 +725,7 @@ public partial class AdminServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         DateTime date = new DateTime(2026, 10, 10, 12, 0, 0, DateTimeKind.Utc);
-        var req = new AdminCreateBookingRequest { RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 };
+        var req = new AdminCreateBookingRequest { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = date, Seats = 2 };
 
         BookingDetailDto result = await svc.CreateBookingAsync(req);
 
@@ -703,7 +746,7 @@ public partial class AdminServiceTests : IDisposable
         _db.Bookings.Add(new Booking { RestaurantId = 1, SectionId = 1, TableId = 1, Date = newStart.AddMinutes(100), EndTime = newStart.AddMinutes(100).AddMinutes(120), BookingRef = "LATER1" });
         await _db.SaveChangesAsync();
 
-        var req = new AdminCreateBookingRequest { RestaurantId = 1, SectionId = 1, TableId = 1, Date = newStart, Seats = 2 };
+        var req = new AdminCreateBookingRequest { CustomerPhone = TestPhones.Valid, RestaurantId = 1, SectionId = 1, TableId = 1, Date = newStart, Seats = 2 };
 
         await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(req));
     }
@@ -725,6 +768,7 @@ public partial class AdminServiceTests : IDisposable
         DateTime pastStart = DateTime.UtcNow.AddDays(-7);
         var req = new AdminCreateBookingRequest
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,

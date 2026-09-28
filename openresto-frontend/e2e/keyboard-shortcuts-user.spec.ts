@@ -115,6 +115,7 @@ test.describe("End-user keyboard shortcuts", () => {
           sectionId: PATIO_SECTION_ID,
           customerEmail: CANCEL_TEST_EMAIL,
           customerName: "E2E Shortcuts Cancel Test",
+          customerPhone: "+593991234567",
           seats: 2,
           date: slotUtc,
           holdId,

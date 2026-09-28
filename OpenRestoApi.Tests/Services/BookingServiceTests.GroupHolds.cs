@@ -6,6 +6,7 @@ using OpenRestoApi.Core.Application.Interfaces;
 using OpenRestoApi.Core.Application.Services;
 using OpenRestoApi.Core.Domain;
 using OpenRestoApi.Infrastructure.Persistence;
+using OpenRestoApi.Tests.TestInfrastructure;
 
 namespace OpenRestoApi.Tests.Services;
 
@@ -45,6 +46,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "adopted-group@example.com",
             Seats = 6,
@@ -88,6 +90,7 @@ public partial class BookingServiceTests
 
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "stale-group@example.com",
             Seats = 6,
@@ -115,6 +118,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "foreign-hold@example.com",
             Seats = 2,
@@ -137,6 +141,7 @@ public partial class BookingServiceTests
 
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "too-big@example.com",
             Seats = 9,
@@ -156,6 +161,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "no-section@example.com",
             Seats = 6,
@@ -183,6 +189,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "notified@example.com",
             Seats = 6,
@@ -210,6 +217,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "quiet@example.com",
             Seats = 6,
@@ -236,6 +244,7 @@ public partial class BookingServiceTests
 
         BookingDto result = await svc.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             CustomerEmail = "own-hold@example.com",
             Seats = 6,

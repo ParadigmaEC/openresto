@@ -2,6 +2,7 @@ using OpenRestoApi.Core.Application.DTOs;
 using OpenRestoApi.Core.Application.Services;
 using OpenRestoApi.Core.Application.Utilities;
 using OpenRestoApi.Infrastructure.Persistence;
+using OpenRestoApi.Tests.TestInfrastructure;
 
 namespace OpenRestoApi.Tests.Services;
 
@@ -21,6 +22,7 @@ public partial class BookingServiceTests
         BookingService plain = CreateService(db);
         BookingDto created = await plain.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -36,6 +38,7 @@ public partial class BookingServiceTests
         Assert.NotNull(result);
         Assert.Null(result!.CustomerName);
         Assert.Null(result.CustomerEmail);
+        Assert.Null(result.CustomerPhone);
     }
 
     [Fact]
@@ -46,6 +49,7 @@ public partial class BookingServiceTests
         BookingService plain = CreateService(db);
         BookingDto created = await plain.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -63,6 +67,7 @@ public partial class BookingServiceTests
         Assert.NotNull(result);
         Assert.Equal("Guest Name", result!.CustomerName);
         Assert.Equal("guest@example.com", result.CustomerEmail);
+        Assert.Equal(TestPhones.Valid, result.CustomerPhone);
     }
 
     [Fact]
@@ -73,6 +78,7 @@ public partial class BookingServiceTests
         BookingService plain = CreateService(db);
         BookingDto created = await plain.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -88,6 +94,7 @@ public partial class BookingServiceTests
         Assert.NotNull(result);
         Assert.Equal("Guest Name", result!.CustomerName);
         Assert.Equal("guest@example.com", result.CustomerEmail);
+        Assert.Equal(TestPhones.Valid, result.CustomerPhone);
     }
 
     [Fact]
@@ -100,6 +107,7 @@ public partial class BookingServiceTests
         BookingService plain = CreateService(db);
         BookingDto created = await plain.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -115,6 +123,7 @@ public partial class BookingServiceTests
         Assert.NotNull(result);
         Assert.Equal("Guest Name", result!.CustomerName);
         Assert.Equal("guest@example.com", result.CustomerEmail);
+        Assert.Equal(TestPhones.Valid, result.CustomerPhone);
     }
 
     [Fact]
@@ -125,6 +134,7 @@ public partial class BookingServiceTests
         BookingService plain = CreateService(db);
         await plain.CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1,
             SectionId = 1,
             TableId = 1,
@@ -140,5 +150,6 @@ public partial class BookingServiceTests
         Assert.NotEmpty(results);
         Assert.All(results, r => Assert.Null(r.CustomerName));
         Assert.All(results, r => Assert.Null(r.CustomerEmail));
+        Assert.All(results, r => Assert.Null(r.CustomerPhone));
     }
 }

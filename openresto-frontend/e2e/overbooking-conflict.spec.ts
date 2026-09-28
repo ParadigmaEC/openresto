@@ -101,6 +101,7 @@ test.describe("Overbooking is prevented (409 conflicts)", () => {
           sectionId: PATIO_SECTION_ID,
           customerEmail: OVERBOOK_EMAIL,
           customerName: "E2E Overbook Held Test",
+          customerPhone: "+593991234567",
           seats: 2,
           date: SLOT_UTC,
           // deliberately omitting holdId
@@ -126,6 +127,7 @@ test.describe("Overbooking is prevented (409 conflicts)", () => {
           sectionId: PATIO_SECTION_ID,
           customerEmail: OVERBOOK_EMAIL,
           customerName: "E2E Overbook Confirmed",
+          customerPhone: "+593991234567",
           seats: 2,
           date: SLOT_UTC,
           holdId, // unlocks the held table
@@ -159,6 +161,7 @@ test.describe("Overbooking is prevented (409 conflicts)", () => {
           sectionId: PATIO_SECTION_ID,
           customerEmail: OVERBOOK_EMAIL,
           customerName: "E2E Overbook Duplicate",
+          customerPhone: "+593991234567",
           seats: 2,
           date: SLOT_UTC,
         },

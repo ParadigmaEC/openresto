@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OpenRestoApi.Core.Domain;
 using OpenRestoApi.Infrastructure.Persistence;
+using OpenRestoApi.Tests.TestInfrastructure;
 
 namespace OpenRestoApi.Tests.Integration;
 
@@ -215,6 +216,7 @@ public class AdminControllerSectionsReorderIntegrationTests(TestWebAppFactory fa
 
         HttpResponseMessage bookingResp = await client.PostAsJsonAsync("/api/admin/bookings", new
         {
+            customerPhone = TestPhones.Valid,
             restaurantId,
             sectionId = sectionB,
             tableId,

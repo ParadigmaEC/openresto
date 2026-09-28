@@ -27,6 +27,7 @@ import {
   EmailField,
   GuestsField,
   NameField,
+  PhoneField,
   RequestsField,
   SectionField,
   TableField,
@@ -37,6 +38,7 @@ import {
   BookingFormInlineLayout,
   type BookingFormParts,
 } from "./BookingFormLayouts";
+import { EMPTY_PHONE, phoneE164, type PhoneValue } from "../common/PhoneInput";
 import { styles } from "./BookingForm.styles";
 
 const isWeb = Platform.OS === "web";
@@ -44,6 +46,8 @@ const isWeb = Platform.OS === "web";
 export interface BookingFormData {
   customerEmail: string;
   customerName: string;
+  /** E.164, e.g. +593991234567. */
+  customerPhone: string;
   seats: number;
   /** null when "Any section" is selected (server auto-assigns the table). */
   tableId: number | null;
@@ -99,6 +103,8 @@ export default function BookingForm({
 
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState<PhoneValue>(EMPTY_PHONE);
+  const customerPhoneE164 = phoneE164(customerPhone);
   const [specialRequests, setSpecialRequests] = useState("");
   const [seatsState, setSeats] = useState(initialSeats ?? 2);
   const seats = controlledSeats ?? seatsState;
@@ -210,6 +216,7 @@ export default function BookingForm({
     !!time &&
     customerName.trim().length > 0 &&
     isValidEmail(customerEmail) &&
+    !!customerPhoneE164 &&
     holdStatus === "held" &&
     !bookingBlocked;
 
@@ -243,6 +250,7 @@ export default function BookingForm({
       await onSubmit({
         customerEmail,
         customerName,
+        customerPhone: customerPhoneE164!,
         seats,
         ...seatingPayload(),
         date,
@@ -269,12 +277,13 @@ export default function BookingForm({
   }, []);
 
   /**
-   * A name and an email are what the guest has to type either way, and entering them is also
-   * what takes the hold — so the confirm arrives docked at the same moment the table is held,
+   * A name, an email and a phone are what the guest has to type either way, and the email is
+   * also what takes the hold — so the confirm arrives docked at the same moment the table is held,
    * and the sheet keeps its full height while they are still choosing a time.
    */
   const hasDock = useHasBookingDock();
-  const shouldDock = hasDock && customerName.trim().length > 0 && isValidEmail(customerEmail);
+  const shouldDock =
+    hasDock && customerName.trim().length > 0 && isValidEmail(customerEmail) && !!customerPhoneE164;
 
   usePublishBookingDock(
     shouldDock
@@ -381,6 +390,7 @@ export default function BookingForm({
 
   const nameField = <NameField value={customerName} onChange={setCustomerName} />;
   const emailField = <EmailField value={customerEmail} onChange={setCustomerEmail} />;
+  const phoneField = <PhoneField value={customerPhone} onChange={setCustomerPhone} />;
   const requestsField = (label: string) => (
     <RequestsField label={label} value={specialRequests} onChange={setSpecialRequests} />
   );
@@ -473,6 +483,7 @@ export default function BookingForm({
     tableField,
     nameField,
     emailField,
+    phoneField,
     requestsField,
     timesContent,
     timesBlock,

@@ -47,18 +47,30 @@ describe("joinWaitlist", () => {
   it("posts the party and hands back the entry", async () => {
     mockFetch.mockResolvedValue(json({ ref: "abc" }, 201));
 
-    const result = await joinWaitlist(3, { name: "Ada", seats: 2, locale: "fr" });
+    const result = await joinWaitlist(3, {
+      name: "Ada",
+      seats: 2,
+      phone: "+593991234567",
+      locale: "fr",
+    });
 
     expect(result).toEqual({ ok: true, value: { ref: "abc" } });
     const [url, init] = mockFetch.mock.calls[0];
     expect(url).toBe("/api/restaurants/3/waitlist");
-    expect(JSON.parse(init.body)).toEqual({ name: "Ada", seats: 2, locale: "fr" });
+    expect(JSON.parse(init.body)).toEqual({
+      name: "Ada",
+      seats: 2,
+      phone: "+593991234567",
+      locale: "fr",
+    });
   });
 
   it("carries the server's reason for a refusal, in the viewer's language", async () => {
     mockFetch.mockResolvedValue(json({ message: "closed", code: "waitlist.closed_now" }, 409));
 
-    await expect(joinWaitlist(3, { name: "Ada", seats: 2 })).resolves.toEqual({
+    await expect(
+      joinWaitlist(3, { name: "Ada", seats: 2, phone: "+593991234567" })
+    ).resolves.toEqual({
       ok: false,
       message: "This location is closed right now.",
     });
@@ -67,7 +79,7 @@ describe("joinWaitlist", () => {
   it("falls back to a generic message when the request fails", async () => {
     mockFetch.mockRejectedValue(new Error("offline"));
 
-    const result = await joinWaitlist(3, { name: "Ada", seats: 2 });
+    const result = await joinWaitlist(3, { name: "Ada", seats: 2, phone: "+593991234567" });
 
     expect(result.ok).toBe(false);
   });
@@ -139,7 +151,9 @@ describe("getWaitlistBoard", () => {
 describe("addWaitlistParty", () => {
   it("posts to the location's board", async () => {
     mockFetch.mockResolvedValueOnce(json({ id: 9 }, 201));
-    await expect(addWaitlistParty(3, { name: "Bo", seats: 4 })).resolves.toEqual({
+    await expect(
+      addWaitlistParty(3, { name: "Bo", seats: 4, phone: "+593991234567" })
+    ).resolves.toEqual({
       ok: true,
       value: { id: 9 },
     });
@@ -148,12 +162,16 @@ describe("addWaitlistParty", () => {
 
   it("reports a refusal or a failed request", async () => {
     mockFetch.mockResolvedValueOnce(json({ message: "Too big" }, 409));
-    await expect(addWaitlistParty(3, { name: "Bo", seats: 40 })).resolves.toEqual({
+    await expect(
+      addWaitlistParty(3, { name: "Bo", seats: 40, phone: "+593991234567" })
+    ).resolves.toEqual({
       ok: false,
       message: "Too big",
     });
     mockFetch.mockRejectedValueOnce(new Error("offline"));
-    expect((await addWaitlistParty(3, { name: "Bo", seats: 4 })).ok).toBe(false);
+    expect((await addWaitlistParty(3, { name: "Bo", seats: 4, phone: "+593991234567" })).ok).toBe(
+      false
+    );
   });
 });
 

@@ -34,6 +34,8 @@ public class BookingService(
 
     public virtual async Task<BookingDto> CreateBookingAsync(BookingDto bookingDto)
     {
+        bookingDto.CustomerPhone = CustomerPhone.Normalize(bookingDto.CustomerPhone);
+
         Restaurant restaurant = await _restaurantRepository.GetByIdAsync(bookingDto.RestaurantId)
             ?? throw new NotFoundException("Restaurant not found.") { Code = ErrorCodes.RestaurantNotFound };
 

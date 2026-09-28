@@ -128,6 +128,7 @@ test.describe("Auth security perimeter", () => {
           date: `${futureDateStr(28)}T17:00:00.000Z`,
           customerEmail: AUTH_TEST_EMAIL,
           customerName: "E2E Auth Lookup Test",
+          customerPhone: "+593991234567",
           seats: 2,
         },
       },

@@ -255,6 +255,7 @@ export default function BookingDrawer({
       const newBooking = await createBooking({
         customerEmail: data.customerEmail,
         customerName: data.customerName,
+        customerPhone: data.customerPhone,
         seats: data.seats,
         tableId: data.tableId,
         tableGroupId: data.tableGroupId,

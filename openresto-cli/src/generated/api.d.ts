@@ -4205,6 +4205,8 @@ export interface components {
             date?: string;
             customerEmail?: string;
             customerName?: null | string;
+            /** @description Required; normalized to E.164 by CustomerPhone. */
+            customerPhone?: null | string;
             /** Format: int32 */
             seats?: number | string;
         };
@@ -4262,6 +4264,8 @@ export interface components {
             date?: string;
             customerEmail?: null | string;
             customerName?: null | string;
+            /** @description Required on create; normalized to E.164 by CustomerPhone. */
+            customerPhone?: null | string;
             /**
              * Format: int32
              * @description Party size. Bounded to [int BookingLimits.MinSeats, int BookingLimits.MaxSeats] on create.
@@ -4438,6 +4442,8 @@ export interface components {
             seats?: number | string;
             /** @description Optional. Where the "table ready" email goes. */
             email?: null | string;
+            /** @description Required; normalized to E.164 by CustomerPhone. */
+            phone?: null | string;
             locale?: null | string;
         };
         LoginRequest: {

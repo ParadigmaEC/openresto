@@ -340,7 +340,7 @@ public class AuditTrailTests(TestWebAppFactory factory) : IClassFixture<TestWebA
         });
     }
 
-    private async Task<Booking> SeedBookingAsync(string customerName, string customerEmail, string specialRequests)
+    private async Task<Booking> SeedBookingAsync(string customerName, string customerEmail, string specialRequests, string? customerPhone = null)
     {
         using IServiceScope scope = _factory.Services.CreateScope();
         AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -369,6 +369,7 @@ public class AuditTrailTests(TestWebAppFactory factory) : IClassFixture<TestWebA
             BookingRef = $"AUD{Guid.NewGuid():N}"[..8].ToUpperInvariant(),
             CustomerName = customerName,
             CustomerEmail = customerEmail,
+            CustomerPhone = customerPhone,
             SpecialRequests = specialRequests,
         };
         db.Bookings.Add(booking);
@@ -407,9 +408,29 @@ public class AuditTrailTests(TestWebAppFactory factory) : IClassFixture<TestWebA
     public async Task NoGuestDetailOnABooking_EverReachesTheTrail()
     {
         const string stamp = "gu3stdeta1l";
+        const string phoneDigits = "987650321";
+        const string phone = "+593" + phoneDigits;
         Booking booking = await SeedBookingAsync(
-            $"{stamp}-name", $"{stamp}-before@example.com", $"{stamp}-allergic-to-peanuts");
+            $"{stamp}-name", $"{stamp}-before@example.com", $"{stamp}-allergic-to-peanuts", phone);
         HttpClient owner = _factory.CreateAuthenticatedClient();
+
+        await owner.PostAsJsonAsync("/api/admin/bookings", new
+        {
+            restaurantId = booking.RestaurantId,
+            sectionId = booking.SectionId,
+            tableId = booking.TableId,
+            date = booking.Date.AddDays(1).ToString("yyyy-MM-ddTHH:mm:ss"),
+            customerName = $"{stamp}-walk-in",
+            customerEmail = $"{stamp}-walk-in@example.com",
+            customerPhone = phone,
+            seats = 2,
+        });
+        await owner.PostAsJsonAsync($"/api/admin/restaurants/{booking.RestaurantId}/waitlist", new
+        {
+            name = $"{stamp}-waiting",
+            seats = 2,
+            phone,
+        });
 
         await owner.PutAsJsonAsync($"/api/admin/bookings/{booking.Id}", new
         {
@@ -429,6 +450,7 @@ public class AuditTrailTests(TestWebAppFactory factory) : IClassFixture<TestWebA
         // Every one of those requests landed a row — the sweep would pass vacuously otherwise.
         foreach (string action in new[]
         {
+            AuditActions.BookingCreate, AuditActions.WaitlistAdd,
             AuditActions.BookingUpdate, AuditActions.BookingExtend, AuditActions.BookingEmail,
             AuditActions.BookingCancel, AuditActions.BookingRestore, AuditActions.BookingPurge,
         })
@@ -440,6 +462,7 @@ public class AuditTrailTests(TestWebAppFactory factory) : IClassFixture<TestWebA
         {
             string haystack = string.Join(' ', e.ChangesJson, e.Summary, e.TargetLabel, e.Path);
             Assert.DoesNotContain(stamp, haystack, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(phoneDigits, haystack, StringComparison.Ordinal);
         });
     }
 

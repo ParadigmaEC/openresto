@@ -3903,6 +3903,15 @@
               "string"
             ]
           },
+          "customerPhone": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Required; normalized to E.164 by CustomerPhone."
+          },
           "seats": {
             "maximum": 50,
             "minimum": 1,
@@ -4083,6 +4092,15 @@
               "null",
               "string"
             ]
+          },
+          "customerPhone": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Required on create; normalized to E.164 by CustomerPhone."
           },
           "seats": {
             "maximum": 50,
@@ -4669,6 +4687,15 @@
               "string"
             ],
             "description": "Optional. Where the \u0022table ready\u0022 email goes."
+          },
+          "phone": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Required; normalized to E.164 by CustomerPhone."
           },
           "locale": {
             "maxLength": 8,

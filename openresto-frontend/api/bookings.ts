@@ -16,6 +16,8 @@ export interface BookingDto {
   endTime?: string;
   customerEmail: string;
   customerName?: string;
+  /** E.164; null on bookings taken before the phone was required. */
+  customerPhone?: string | null;
   seats: number;
   isHeld: boolean;
   specialRequests?: string;
@@ -39,6 +41,8 @@ export interface BookingCreationDto {
   tableGroupId?: number | null;
   customerEmail: string;
   customerName: string;
+  /** E.164, e.g. +593991234567. Required. */
+  customerPhone: string;
   seats: number;
   date: string;
   holdId?: string | null;
@@ -57,6 +61,7 @@ function normalizeBooking(raw: Record<string, unknown>): BookingDto {
     endTime: (raw.endTime ?? raw.EndTime) as string | undefined,
     customerEmail: (raw.customerEmail ?? raw.CustomerEmail) as string,
     customerName: (raw.customerName ?? raw.CustomerName) as string | undefined,
+    customerPhone: (raw.customerPhone ?? raw.CustomerPhone ?? null) as string | null,
     seats: (raw.seats ?? raw.Seats) as number,
     isHeld: (raw.isHeld ?? raw.IsHeld ?? false) as boolean,
     specialRequests: (raw.specialRequests ?? raw.SpecialRequests) as string | undefined,
@@ -74,6 +79,13 @@ export async function createBooking(booking: BookingCreationDto): Promise<Bookin
   if (res.status === 409) {
     const body = await res.json().catch(() => ({}));
     throw new Error(apiErrorMessage(body, "This table is no longer available."));
+  }
+
+  // A 400 names the field it refused (a missing or malformed phone, say), so its message is
+  // worth more to the guest than the generic one.
+  if (res.status === 400) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(apiErrorMessage(body, "Failed to create booking"));
   }
 
   if (!res.ok) throw new Error("Failed to create booking");

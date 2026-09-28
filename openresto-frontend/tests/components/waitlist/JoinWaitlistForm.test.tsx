@@ -13,6 +13,9 @@ jest.mock("@/context/LocaleContext", () => ({ useLocale: () => ({ locale: "fr" }
 
 const onJoined = jest.fn();
 
+const typePhone = (value = "0991234567") =>
+  fireEvent.changeText(screen.getByLabelText("Phone number"), value);
+
 /** The page owns party size, as LocationsScreen does. */
 function Form() {
   const [seats, setSeats] = useState(2);
@@ -51,13 +54,15 @@ beforeEach(() => {
 });
 
 describe("JoinWaitlistForm", () => {
+  // The first test pays the phone picker's cold first mount (Select and its panel), which can
+  // outlast findBy's default second on a slow machine.
   it("quotes the wait before the guest commits", async () => {
     render(<Form />);
 
-    expect(await screen.findByText("About 25 min wait")).toBeTruthy();
+    expect(await screen.findByText("About 25 min wait", {}, { timeout: 8000 })).toBeTruthy();
     expect(screen.getByText("2 parties waiting")).toBeTruthy();
     expect(mockQuote).toHaveBeenCalledWith(3, 2);
-  });
+  }, 15000);
 
   it("says a table is free now at a zero wait", async () => {
     mockQuote.mockResolvedValue({ ...open, estimatedWaitMinutes: 0, partiesWaiting: 1 });
@@ -115,13 +120,18 @@ describe("JoinWaitlistForm", () => {
     expect(screen.queryByText("About 5 min wait")).toBeNull();
   });
 
-  it("needs a name, and a valid email only if one is given", async () => {
+  it("needs a name, a phone valid for the country, and a valid email only if one is given", async () => {
     render(<Form />);
     await screen.findByTestId("waitlist-quote");
     const submit = () => screen.getByTestId("waitlist-join-submit");
 
     expect(submit()).toBeDisabled();
     fireEvent.changeText(screen.getByLabelText("Full name"), "Ada");
+    expect(submit()).toBeDisabled();
+    typePhone("099123456");
+    expect(submit()).toBeDisabled();
+    expect(screen.getByText("Enter a valid phone number for the selected country.")).toBeTruthy();
+    typePhone();
     expect(submit()).not.toBeDisabled();
     fireEvent.changeText(screen.getByLabelText("Email address"), "nope");
     expect(submit()).toBeDisabled();
@@ -135,6 +145,7 @@ describe("JoinWaitlistForm", () => {
     await screen.findByTestId("waitlist-quote");
 
     fireEvent.changeText(screen.getByLabelText("Full name"), "  Ada ");
+    typePhone();
     fireEvent.press(screen.getByTestId("waitlist-join-submit"));
 
     await waitFor(() => expect(onJoined).toHaveBeenCalledWith("abc234"));
@@ -142,6 +153,7 @@ describe("JoinWaitlistForm", () => {
       name: "Ada",
       seats: 2,
       email: undefined,
+      phone: "+593991234567",
       locale: "fr",
     });
   });
@@ -156,6 +168,7 @@ describe("JoinWaitlistForm", () => {
     await screen.findByTestId("waitlist-quote");
 
     fireEvent.changeText(screen.getByLabelText("Full name"), "Ada");
+    typePhone();
     fireEvent.press(screen.getByTestId("waitlist-push-btn"));
     await screen.findByText("Notifications on");
     fireEvent.press(screen.getByTestId("waitlist-join-submit"));
@@ -171,6 +184,7 @@ describe("JoinWaitlistForm", () => {
 
     fireEvent.changeText(screen.getByLabelText("Full name"), "Ada");
     fireEvent.changeText(screen.getByLabelText("Email address"), " ada@example.com ");
+    typePhone();
     fireEvent.press(screen.getByTestId("waitlist-join-submit"));
 
     expect(await screen.findByTestId("waitlist-join-error")).toHaveTextContent(

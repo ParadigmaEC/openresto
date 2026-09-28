@@ -43,6 +43,8 @@ public class Booking
     public DateTime Date { get; set; }
     public string? CustomerEmail { get; set; }
     public string? CustomerName { get; set; }
+    /// <summary>E.164 (see <see cref="Application.Utilities.CustomerPhone"/>). Null on bookings taken before phones were collected.</summary>
+    public string? CustomerPhone { get; set; }
     public int Seats { get; set; }
     public string? SpecialRequests { get; set; }
     public string BookingRef { get; set; } = string.Empty;

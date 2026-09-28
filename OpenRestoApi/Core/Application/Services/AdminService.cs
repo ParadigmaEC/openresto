@@ -136,6 +136,9 @@ public class AdminService(
         };
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     /// <seealso>AdminServiceTests.GetOverviewAsync_ReportsTodaysCoversPerSlot_ForACappedLocation</seealso>
     private static LocationPacingDto PacingFor(Restaurant restaurant, int cap, IEnumerable<Booking> todayBookings) => new()
     {
@@ -323,6 +326,8 @@ public class AdminService(
 
     public virtual async Task<BookingDetailDto> CreateBookingAsync(AdminCreateBookingRequest req)
     {
+        string customerPhone = CustomerPhone.Normalize(req.CustomerPhone);
+
         Table table = await _tableRepository.GetWithSectionRestaurantAsync(req.TableId, req.SectionId)
             ?? throw new ValidationException("Table not found in the specified section.") { Code = ErrorCodes.BookingTableNotInSection };
 
@@ -357,6 +362,7 @@ public class AdminService(
             EndTime = newStart.AddMinutes(durationMinutes),
             CustomerEmail = req.CustomerEmail,
             CustomerName = req.CustomerName,
+            CustomerPhone = customerPhone,
             Seats = req.Seats,
             BookingRef = BookingRefFactory.GenerateFor(table.Section.Restaurant),
         };
@@ -967,6 +973,7 @@ public class AdminService(
                 dateUtc, endTimeUtc, b.Restaurant?.DefaultBookingDurationMinutes),
             CustomerEmail = b.CustomerEmail,
             CustomerName = b.CustomerName,
+            CustomerPhone = b.CustomerPhone,
             Seats = b.Seats,
             SpecialRequests = b.SpecialRequests,
             BookingRef = b.BookingRef,

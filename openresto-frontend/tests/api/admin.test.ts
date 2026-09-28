@@ -383,6 +383,7 @@ describe("adminCreateBooking", () => {
     tableId: 3,
     date: "2026-06-15T19:00:00Z",
     customerEmail: "c@d.com",
+    customerPhone: "+593991234567",
     seats: 4,
   };
 
@@ -425,6 +426,28 @@ describe("adminCreateBooking", () => {
 
   it("throws on non-ok non-409 response", async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+
+    await expect(adminCreateBooking(req)).rejects.toThrow("Failed to create booking");
+  });
+
+  it("translates a 400 refusing the phone from its code", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({ message: "server wording", code: "booking.phone_required" }),
+    });
+
+    await expect(adminCreateBooking(req)).rejects.toThrow("A phone number is required.");
+  });
+
+  it("falls back to the generic message on a 400 without a body", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => {
+        throw new Error("no json");
+      },
+    });
 
     await expect(adminCreateBooking(req)).rejects.toThrow("Failed to create booking");
   });

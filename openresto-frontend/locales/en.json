@@ -76,7 +76,12 @@
       "tableLabel": "Table",
       "timeLabel": "Time",
       "timezoneHint": "All times are in {{timezone}} (currently {{time}} there)",
-      "walkInsOnlyReason": "Walk-ins only"
+      "walkInsOnlyReason": "Walk-ins only",
+      "phoneLabel": "Phone",
+      "phonePlaceholder": "099 123 4567",
+      "phoneAccessibilityLabel": "Phone number",
+      "phoneCountryAccessibilityLabel": "Phone country code",
+      "phoneInvalid": "Enter a valid phone number for the selected country."
     },
     "guestDetails": {
       "bookedUnder": "Booked under {{name}}",
@@ -383,7 +388,9 @@
       "table_not_in_section": "Table not found in the specified section.",
       "walk_in_only": "This location accepts walk-ins only and does not take online bookings.",
       "walk_in_only_today": "This location accepts walk-ins only on the selected day. Please choose another day or just come in.",
-      "pacing_full": "Only {{remaining}} more guests can start at {{time}}. Please pick another time."
+      "pacing_full": "Only {{remaining}} more guests can start at {{time}}. Please pick another time.",
+      "phone_required": "A phone number is required.",
+      "phone_invalid": "Please enter a valid phone number, including its country code."
     },
     "brand": {
       "accent_color_invalid": "Invalid accent color hex code.",
@@ -904,7 +911,11 @@
         "namePlaceholder": "Full name",
         "specialRequestsPlaceholder": "Dietary needs, occasion, notes",
         "tableOptionLabel": "{{name}} ({{seats}})",
-        "tableFallbackName": "Table {{id}}"
+        "tableFallbackName": "Table {{id}}",
+        "guestPhone": "Guest phone",
+        "phonePlaceholder": "099 123 4567",
+        "phoneCountryLabel": "Guest phone country code",
+        "phoneInvalid": "Enter a valid phone number for the selected country."
       },
       "detail": {
         "heading": "Booking Details",
@@ -923,7 +934,8 @@
           "party": "Party",
           "name": "Name",
           "noShows": "No-shows",
-          "requests": "Requests"
+          "requests": "Requests",
+          "phone": "Phone"
         },
         "noRequests": "None",
         "timeRangeWithDuration": "{{range}} ({{mins}} min)",
@@ -2137,7 +2149,10 @@
       "removeLabel": "Remove {{name}}",
       "removeTitle": "Remove Party",
       "removeConfirm": "Remove {{name}} from the waitlist?",
-      "loadFailed": "Couldn't load the waitlist."
+      "loadFailed": "Couldn't load the waitlist.",
+      "phoneLabel": "Phone",
+      "phoneCountryLabel": "Phone country code",
+      "phoneInvalid": "Enter a valid phone number for the selected country."
     }
   }
 }

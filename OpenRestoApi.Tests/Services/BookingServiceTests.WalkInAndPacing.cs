@@ -4,6 +4,7 @@ using OpenRestoApi.Core.Application.Services;
 using OpenRestoApi.Core.Application.Utilities;
 using OpenRestoApi.Core.Domain;
 using OpenRestoApi.Infrastructure.Persistence;
+using OpenRestoApi.Tests.TestInfrastructure;
 
 namespace OpenRestoApi.Tests.Services;
 
@@ -21,6 +22,7 @@ public partial class BookingServiceTests
 
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => CreateService(db).CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1, SectionId = 1, TableId = 1, CustomerEmail = "guest@example.com",
             Seats = 2, Date = DateTime.UtcNow.AddDays(3),
         }));
@@ -39,6 +41,7 @@ public partial class BookingServiceTests
 
         ConflictException ex = await Assert.ThrowsAsync<ConflictException>(() => CreateService(db).CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1, TableGroupId = 1, CustomerEmail = "guest@example.com",
             Seats = 6, Date = DateTime.UtcNow.AddDays(3),
         }));
@@ -57,6 +60,7 @@ public partial class BookingServiceTests
         // T1 is the only 2-top, so a party of 2 would land there. Held back, it gets a 4-top.
         BookingDto result = await CreateService(db).CreateBookingAsync(new BookingDto
         {
+            CustomerPhone = TestPhones.Valid,
             RestaurantId = 1, CustomerEmail = "guest@example.com", Seats = 2, Date = DateTime.UtcNow.AddDays(3),
         });
 
@@ -94,7 +98,7 @@ public partial class BookingServiceTests
 
     private static BookingDto PartyAt(DateTime date, int seats, int tableId) => new()
     {
-        RestaurantId = 1, SectionId = 1, TableId = tableId, CustomerEmail = "guest@example.com",
+        RestaurantId = 1, SectionId = 1, TableId = tableId, CustomerEmail = "guest@example.com", CustomerPhone = TestPhones.Valid,
         Seats = seats, Date = date,
     };
 

@@ -35,6 +35,7 @@ const party = (over: Partial<waitlistApi.WaitlistEntry> = {}): waitlistApi.Waitl
   number: 7,
   name: "Ada",
   email: null,
+  phone: null,
   seats: 2,
   status: "waiting",
   joinedAt: new Date().toISOString(),
@@ -128,14 +129,25 @@ describe("admin waitlist", () => {
     fireEvent.changeText(screen.getByTestId("waitlist-add-email"), "bad");
     expect(screen.getByTestId("waitlist-add-submit")).toBeDisabled();
     fireEvent.changeText(screen.getByTestId("waitlist-add-email"), "bo@example.com");
+    expect(screen.getByTestId("waitlist-add-submit")).toBeDisabled();
+    fireEvent.changeText(screen.getByTestId("waitlist-add-phone"), "099123456");
+    expect(screen.getByTestId("waitlist-add-submit")).toBeDisabled();
+    expect(screen.getByText("Enter a valid phone number for the selected country.")).toBeTruthy();
+    fireEvent.changeText(screen.getByTestId("waitlist-add-phone"), "0991234567");
     fireEvent.press(screen.getByLabelText(/^Party size, /));
     fireEvent.press(screen.getByRole("option", { name: "4 guests" }));
     fireEvent.press(screen.getByTestId("waitlist-add-submit"));
 
     await waitFor(() =>
-      expect(mockAdd).toHaveBeenCalledWith(1, { name: "Bo", seats: 4, email: "bo@example.com" })
+      expect(mockAdd).toHaveBeenCalledWith(1, {
+        name: "Bo",
+        seats: 4,
+        email: "bo@example.com",
+        phone: "+593991234567",
+      })
     );
     await waitFor(() => expect(screen.getByTestId("waitlist-add-name").props.value).toBe(""));
+    expect(screen.getByTestId("waitlist-add-phone").props.value).toBe("");
   });
 
   it("shows why an add was refused", async () => {
@@ -144,12 +156,18 @@ describe("admin waitlist", () => {
     await screen.findByTestId("waitlist-row-4");
 
     fireEvent.changeText(screen.getByTestId("waitlist-add-name"), "Bo");
+    fireEvent.changeText(screen.getByTestId("waitlist-add-phone"), "+1 415 555 2671");
     fireEvent.press(screen.getByTestId("waitlist-add-submit"));
 
     expect(await screen.findByTestId("waitlist-error")).toHaveTextContent(
       "No table here can seat a party of 12."
     );
-    expect(mockAdd).toHaveBeenCalledWith(1, { name: "Bo", seats: 2, email: undefined });
+    expect(mockAdd).toHaveBeenCalledWith(1, {
+      name: "Bo",
+      seats: 2,
+      email: undefined,
+      phone: "+14155552671",
+    });
   });
 
   it("acts on a party and refreshes the board", async () => {

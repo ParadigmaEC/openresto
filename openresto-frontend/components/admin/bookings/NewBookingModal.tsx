@@ -10,6 +10,11 @@ import {
 import { useTranslation } from "react-i18next";
 import { ThemedText } from "@/components/themed-text";
 import Input from "@/components/common/Input";
+import PhoneInput, {
+  EMPTY_PHONE,
+  phoneE164,
+  type PhoneValue,
+} from "@/components/common/PhoneInput";
 import Select from "@/components/common/Select";
 import DatePicker from "@/components/common/DatePicker";
 import TimePicker from "@/components/common/TimePicker";
@@ -65,6 +70,8 @@ export function NewBookingModal({ visible, onClose, onCreated }: NewBookingModal
   const [seats, setSeats] = useState(2);
   const [email, setEmail] = useState("");
   const [guestName, setGuestName] = useState("");
+  const [phone, setPhone] = useState<PhoneValue>(EMPTY_PHONE);
+  const customerPhone = phoneE164(phone);
 
   useEffect(() => {
     if (!visible) return;
@@ -94,6 +101,7 @@ export function NewBookingModal({ visible, onClose, onCreated }: NewBookingModal
       setCapacityWarning(null);
       setEmail("");
       setGuestName("");
+      setPhone(EMPTY_PHONE);
       setSeats(2);
       setDate(todayDate());
     }
@@ -131,7 +139,13 @@ export function NewBookingModal({ visible, onClose, onCreated }: NewBookingModal
   };
 
   const isValid =
-    !!restaurantId && !!sectionId && !!tableId && isValidEmail(email) && !!date && !!time;
+    !!restaurantId &&
+    !!sectionId &&
+    !!tableId &&
+    isValidEmail(email) &&
+    !!customerPhone &&
+    !!date &&
+    !!time;
 
   const doSubmit = async () => {
     setSubmitting(true);
@@ -145,6 +159,7 @@ export function NewBookingModal({ visible, onClose, onCreated }: NewBookingModal
         date: isoDate,
         customerEmail: email,
         customerName: guestName.trim() || undefined,
+        customerPhone: customerPhone!,
         seats,
       });
       if (result) {
@@ -318,6 +333,20 @@ export function NewBookingModal({ visible, onClose, onCreated }: NewBookingModal
                       onChangeText={setEmail}
                       keyboardType="email-address"
                       autoCapitalize="none"
+                    />
+                  </View>
+
+                  <View style={styles.field}>
+                    <ThemedText style={styles.label}>
+                      {t("admin.bookings.form.guestPhone")}
+                    </ThemedText>
+                    <PhoneInput
+                      value={phone}
+                      onChange={setPhone}
+                      placeholder={t("admin.bookings.form.phonePlaceholder")}
+                      numberAccessibilityLabel={t("admin.bookings.form.guestPhone")}
+                      countryAccessibilityLabel={t("admin.bookings.form.phoneCountryLabel")}
+                      invalidHint={t("admin.bookings.form.phoneInvalid")}
                     />
                   </View>
 

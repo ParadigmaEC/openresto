@@ -63,6 +63,7 @@ test.describe("Cancel a past booking (#159)", () => {
           date: pastUtcISO(2 * 24 * 60),
           customerEmail: PAST_BOOKING_EMAIL,
           customerName: "E2E Past Cancel Test",
+          customerPhone: "+593991234567",
           seats: 2,
         },
       },

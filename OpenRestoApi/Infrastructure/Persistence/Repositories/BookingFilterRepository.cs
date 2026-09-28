@@ -129,10 +129,12 @@ internal class BookingFilterRepository(AppDbContext db) : IBookingFilterReposito
         if (!string.IsNullOrWhiteSpace(filter.Query))
         {
             string normalizedQuery = filter.Query.Trim().ToLowerInvariant();
+            string phoneQuery = string.Concat(normalizedQuery.Where(c => !char.IsWhiteSpace(c) && c is not ('-' or '.' or '(' or ')')));
 #pragma warning disable CA1862, CA1311, CA1304
             q = q.Where(b =>
                 (b.CustomerName != null && b.CustomerName.ToLower().Contains(normalizedQuery))
                 || (b.CustomerEmail != null && b.CustomerEmail.ToLower().Contains(normalizedQuery))
+                || (phoneQuery.Length > 0 && b.CustomerPhone != null && b.CustomerPhone.Contains(phoneQuery))
                 || (b.BookingRef != null && b.BookingRef.ToLower().Contains(normalizedQuery)));
 #pragma warning restore CA1862, CA1311, CA1304
         }

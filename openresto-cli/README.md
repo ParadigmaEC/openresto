@@ -170,6 +170,8 @@ example per group:
 
   ```bash
   openresto bookings list --location 1 --status upcoming
+  openresto bookings create --location 1 --section 2 --table 5 --date 2026-01-31T19:00:00Z \
+    --seats 2 --email ada@example.com --phone +593991234567
   openresto bookings extend 42 --minutes 30
   ```
 

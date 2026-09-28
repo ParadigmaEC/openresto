@@ -76,7 +76,12 @@
       "tableLabel": "Mesa",
       "timeLabel": "Hora",
       "timezoneHint": "Todos los horarios están en {{timezone}} (allí son actualmente las {{time}})",
-      "walkInsOnlyReason": "Solo sin reserva"
+      "walkInsOnlyReason": "Solo sin reserva",
+      "phoneLabel": "Teléfono",
+      "phonePlaceholder": "099 123 4567",
+      "phoneAccessibilityLabel": "Número de teléfono",
+      "phoneCountryAccessibilityLabel": "Código de país del teléfono",
+      "phoneInvalid": "Ingresa un número de teléfono válido para el país seleccionado."
     },
     "guestDetails": {
       "bookedUnder": "Reservado a nombre de {{name}}",
@@ -383,7 +388,9 @@
       "table_not_in_section": "No se ha encontrado la mesa en la sala indicada.",
       "walk_in_only": "Este local solo admite visitas sin reserva y no acepta reservas en línea.",
       "walk_in_only_today": "Este local solo admite visitas sin reserva el día seleccionado. Elige otro día o acércate directamente.",
-      "pacing_full": "Solo pueden llegar {{remaining}} comensales más a las {{time}}. Elige otra hora."
+      "pacing_full": "Solo pueden llegar {{remaining}} comensales más a las {{time}}. Elige otra hora.",
+      "phone_required": "El número de teléfono es obligatorio.",
+      "phone_invalid": "Ingresa un número de teléfono válido, con su código de país."
     },
     "brand": {
       "accent_color_invalid": "Código hexadecimal de color de acento no válido.",
@@ -904,7 +911,11 @@
         "namePlaceholder": "Nombre completo",
         "specialRequestsPlaceholder": "Necesidades dietéticas, ocasión, notas",
         "tableOptionLabel": "{{name}} ({{seats}})",
-        "tableFallbackName": "Mesa {{id}}"
+        "tableFallbackName": "Mesa {{id}}",
+        "guestPhone": "Teléfono del cliente",
+        "phonePlaceholder": "099 123 4567",
+        "phoneCountryLabel": "Código de país del teléfono del cliente",
+        "phoneInvalid": "Ingresa un número de teléfono válido para el país seleccionado."
       },
       "detail": {
         "heading": "Detalles de la reserva",
@@ -923,7 +934,8 @@
           "party": "Comensales",
           "name": "Nombre",
           "noShows": "Ausencias",
-          "requests": "Solicitudes"
+          "requests": "Solicitudes",
+          "phone": "Teléfono"
         },
         "noRequests": "Ninguna",
         "timeRangeWithDuration": "{{range}} ({{mins}} min)",
@@ -2137,7 +2149,10 @@
       "removeLabel": "Quitar a {{name}}",
       "removeTitle": "Quitar grupo",
       "removeConfirm": "¿Quitar a {{name}} de la lista de espera?",
-      "loadFailed": "No se pudo cargar la lista de espera."
+      "loadFailed": "No se pudo cargar la lista de espera.",
+      "phoneLabel": "Teléfono",
+      "phoneCountryLabel": "Código de país del teléfono",
+      "phoneInvalid": "Ingresa un número de teléfono válido para el país seleccionado."
     }
   }
 }

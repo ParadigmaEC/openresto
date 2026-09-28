@@ -5,6 +5,7 @@ import Select, { type SelectOption } from "../common/Select";
 import Stepper from "../common/Stepper";
 import DatePicker from "../common/DatePicker";
 import TimePicker from "../common/TimePicker";
+import PhoneInput, { type PhoneValue } from "../common/PhoneInput";
 import { ThemedText } from "../themed-text";
 import { styles } from "./BookingForm.styles";
 
@@ -231,6 +232,31 @@ export function EmailField({
         autoComplete="email"
         returnKeyType="next"
         blurOnSubmit={false}
+      />
+    </Field>
+  );
+}
+
+/** The guest's phone, required on every booking and waitlist ticket. */
+export function PhoneField({
+  label,
+  value,
+  onChange,
+}: {
+  label?: string;
+  value: PhoneValue;
+  onChange: (value: PhoneValue) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Field label={label ?? t("booking.form.phoneLabel")}>
+      <PhoneInput
+        value={value}
+        onChange={onChange}
+        placeholder={t("booking.form.phonePlaceholder")}
+        numberAccessibilityLabel={t("booking.form.phoneAccessibilityLabel")}
+        countryAccessibilityLabel={t("booking.form.phoneCountryAccessibilityLabel")}
+        invalidHint={t("booking.form.phoneInvalid")}
       />
     </Field>
   );

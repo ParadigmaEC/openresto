@@ -95,6 +95,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             bb.HasOne(b => b.TableGroup).WithMany().HasForeignKey(b => b.TableGroupId).OnDelete(DeleteBehavior.SetNull);
             bb.Property(b => b.Status).HasConversion<string>().HasMaxLength(BookingStatusExtensions.MaxLength);
             bb.Property(b => b.PreviousStatus).HasConversion<string>().HasMaxLength(BookingStatusExtensions.MaxLength);
+            bb.Property(b => b.CustomerPhone).HasMaxLength(CustomerPhone.MaxLength);
         });
 
         modelBuilder.Entity<TableGroup>(gb =>
@@ -220,6 +221,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             w.Property(x => x.Ref).IsRequired().HasMaxLength(WaitlistFields.RefLength);
             w.Property(x => x.Name).IsRequired().HasMaxLength(WaitlistFields.MaxNameLength);
             w.Property(x => x.Email).HasMaxLength(ContactLimits.MaxEmailLength);
+            w.Property(x => x.Phone).HasMaxLength(CustomerPhone.MaxLength);
             w.Property(x => x.Locale).IsRequired().HasMaxLength(GuestPushFields.MaxLocaleLength);
             w.Property(x => x.PushChannel).HasMaxLength(GuestPushFields.MaxChannelLength);
             w.Property(x => x.PushEndpoint).HasMaxLength(GuestPushFields.MaxEndpointLength);

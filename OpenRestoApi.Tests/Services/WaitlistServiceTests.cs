@@ -75,8 +75,8 @@ public class WaitlistServiceTests
         currentUser,
         _audit.Object);
 
-    private static JoinWaitlistRequest Party(int seats = 2, string name = "Ada", string? email = null, string? locale = null)
-        => new() { Name = name, Seats = seats, Email = email, Locale = locale };
+    private static JoinWaitlistRequest Party(int seats = 2, string name = "Ada", string? email = null, string? locale = null, string? phone = TestPhones.Valid)
+        => new() { Name = name, Seats = seats, Email = email, Locale = locale, Phone = phone };
 
     private WaitlistEntry Seed(int seats, WaitlistStatus status = WaitlistStatus.Waiting, int minutesAgo = 10)
     {
@@ -178,6 +178,41 @@ public class WaitlistServiceTests
         WaitlistEntry stored = Assert.Single(_waitlist.Entries);
         Assert.Null(stored.Email);
         Assert.Equal("en", stored.Locale);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("  ")]
+    public async Task JoinAsync_Rejects_APartyWithNoPhone(string? phone)
+    {
+        ValidationException ex = await Assert.ThrowsAsync<ValidationException>(() => CreateService().JoinAsync(1, Party(phone: phone)));
+        Assert.Equal(ErrorCodes.BookingPhoneRequired, ex.Code);
+        Assert.Empty(_waitlist.Entries);
+    }
+
+    [Fact]
+    public async Task JoinAsync_Rejects_APhoneThatIsNotE164()
+    {
+        ValidationException ex = await Assert.ThrowsAsync<ValidationException>(() => CreateService().JoinAsync(1, Party(phone: "0991234567")));
+        Assert.Equal(ErrorCodes.BookingPhoneInvalid, ex.Code);
+        Assert.Empty(_waitlist.Entries);
+    }
+
+    [Fact]
+    public async Task JoinAsync_StoresTheNormalizedPhone()
+    {
+        await CreateService().JoinAsync(1, Party(phone: "+593 99-123-4567"));
+
+        Assert.Equal("+593991234567", Assert.Single(_waitlist.Entries).Phone);
+    }
+
+    [Fact]
+    public async Task AddByStaffAsync_RequiresAPhone_AndShowsItOnTheBoard()
+    {
+        await Assert.ThrowsAsync<ValidationException>(() => CreateService().AddByStaffAsync(1, Party(phone: null)));
+
+        WaitlistEntryDto entry = await CreateService().AddByStaffAsync(1, Party(phone: "+593 (99) 123 4567"));
+        Assert.Equal("+593991234567", entry.Phone);
     }
 
     [Fact]
@@ -377,11 +412,13 @@ public class WaitlistServiceTests
     {
         WaitlistEntry entry = Seed(2);
         entry.Email = "ada@example.com";
+        entry.Phone = TestPhones.Valid;
 
         WaitlistBoardDto board = await CreateService(FakeCurrentUser.ApiKey((ApiKeyScopes.Bookings, ApiKeyScopes.Read))).GetBoardAsync(1);
 
         Assert.Null(board.Entries[0].Name);
         Assert.Null(board.Entries[0].Email);
+        Assert.Null(board.Entries[0].Phone);
     }
 
     [Fact]
@@ -443,6 +480,29 @@ public class WaitlistServiceTests
         Assert.Equal(500, entry.BookingId);
         Assert.Equal("seated", result.Entry.Status);
         _queue.Verify(q => q.EnqueueBookingCreated(It.IsAny<Booking>(), "Door"), Times.Once);
+    }
+
+    [Fact]
+    public async Task SeatAsync_CopiesThePartysPhoneOntoTheBooking()
+    {
+        WaitlistEntry entry = Seed(2);
+        entry.Phone = TestPhones.Valid;
+
+        await CreateService().SeatAsync(entry.Id, new SeatWaitlistEntryRequest());
+
+        _bookings.Verify(b => b.AddAsync(It.Is<Booking>(bk => bk.CustomerPhone == TestPhones.Valid)));
+    }
+
+    [Fact]
+    public async Task SeatAsync_SeatsAPartyThatJoinedBeforePhonesWereCollected()
+    {
+        WaitlistEntry entry = Seed(2);
+        Assert.Null(entry.Phone);
+
+        SeatWaitlistEntryResponse result = await CreateService().SeatAsync(entry.Id, new SeatWaitlistEntryRequest());
+
+        Assert.Equal("seated", result.Entry.Status);
+        _bookings.Verify(b => b.AddAsync(It.Is<Booking>(bk => bk.CustomerPhone == null)));
     }
 
     [Fact]
