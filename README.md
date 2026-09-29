@@ -200,8 +200,8 @@ Note: VSCode may not pick up on the Jest config, unless you use the command pale
    ```
 
 4. **That's it.** The [`release.yml`](.github/workflows/release.yml) workflow triggers automatically and:
-   - Builds `linux/amd64` + `linux/arm64` Docker images for the backend, frontend, nginx proxy and CLI
-   - Pushes them to GHCR as `ghcr.io/paradigmaec/openresto-{backend,frontend,nginx,cli}:1.0.0` (and `:1.0`, `:latest`)
+   - Builds `linux/amd64` + `linux/arm64` Docker images for the backend and frontend
+   - Pushes them to GHCR as `ghcr.io/paradigmaec/openresto-{backend,frontend}:1.0.0` (and `:1.0`, `:latest`)
    - Creates a GitHub Release with the `[x.y.z]` section from `CHANGELOG.md` as the release notes
 
    Deployment is not done from this repository: the infrastructure repository pulls the tagged images from GHCR.

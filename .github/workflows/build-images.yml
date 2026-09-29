@@ -26,12 +26,6 @@ jobs:
             context: ./openresto-frontend
             # Relative on purpose: nginx routes /api, so one image serves every environment.
             build-args: EXPO_PUBLIC_API_URL=/api
-          - image: nginx
-            context: ./nginx
-            build-args: ""
-          - image: cli
-            context: ./openresto-cli
-            build-args: ""
     steps:
       - uses: actions/checkout@v7
 
