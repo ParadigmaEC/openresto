@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-09-29
+
+### Added
+
+- **A phone number on every booking and waitlist entry.** The booking form and the waitlist join form now ask for the guest's phone number, required and in international format (for example `+593991234567`); spaces and `- . ( )` are accepted and stripped. Staff see it in the admin next to the guest's name and email. `POST /api/bookings` takes `customerPhone` and `POST /api/restaurants/{restaurantId}/waitlist` takes `phone`; a missing or malformed number is refused with `booking.phone_required` or `booking.phone_invalid`. API keys without `guests:read` get it redacted, like the name and email.
+
+### Changed
+
+- **The database is now PostgreSQL instead of SQLite.** `CONNECTION_STRING` takes a PostgreSQL connection string (`Host=...;Port=5432;Database=...;Username=...;Password=...`), and `docker-compose.yml` starts a `postgres` service for local development. The migration history is consolidated into a single `InitialCreate` for PostgreSQL, so an existing SQLite install does not upgrade in place: its data has to be copied into the new database.
+- **Images are published to `ghcr.io/paradigmaec`, and only the backend and frontend.** A version tag publishes `openresto-backend` and `openresto-frontend` as `X.Y.Z`, `X.Y` and `latest`; every push to `main` that passes CI publishes `main` and `sha-<short>`. The nginx and CLI images and the npm package are no longer published.
+
+### Removed
+
+- Deployment from this repository: the VPS deploy workflow, `docker-compose.vps.yml`, `docker-compose.release.yml` and `nginx-vps/`. Deployment lives in the infrastructure repository, which pulls the published images.
+
 ## [2.3.0] - 2026-09-24
 
 ### Added

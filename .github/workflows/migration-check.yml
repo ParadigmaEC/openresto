@@ -36,9 +36,6 @@ jobs:
       JWT_KEY: ci-migration-check-jwt-key-must-be-32-chars-long
       CONNECTION_STRING: "Host=localhost;Port=5432;Database=ef_tools;Username=postgres;Password=postgres"
       ASPNETCORE_ENVIRONMENT: Development
-      # psql/pg_dump run inside the service container so the client matches the server
-      # version; the runner's own pg_dump refuses a newer server.
-      PG_CONTAINER: ${{ job.services.postgres.id }}
 
     steps:
       - uses: actions/checkout@v7
@@ -147,6 +144,11 @@ jobs:
       - name: Create databases
         if: steps.detect.outputs.has_new_migrations == 'true'
         run: |
+          # psql/pg_dump run inside the service container so the client matches the server
+          # version; the runner's own pg_dump refuses a newer server. The job context is not
+          # available in the job-level env, so the id is exported from here.
+          PG_CONTAINER="${{ job.services.postgres.id }}"
+          echo "PG_CONTAINER=$PG_CONTAINER" >> "$GITHUB_ENV"
           for db in fresh upgrade; do
             docker exec "$PG_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE $db;"
           done
