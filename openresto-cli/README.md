@@ -32,23 +32,28 @@ more than the occasional one-off command.
 
 ### Docker
 
+The image is not published to a registry; build it from this directory first:
+
+```bash
+docker build -t openresto-cli .
+```
+
 ```bash
 docker run --rm \
   -e OPENRESTO_URL=https://booking.example.com \
   -e OPENRESTO_API_KEY=orst_1_your-secret \
-  ghcr.io/paradigmaec/openresto-cli:<tag> bookings list
+  openresto-cli bookings list
 ```
 
-Use `latest` for the newest release, or pin a specific version (e.g. `1.9.0`) to match your
-server. Env vars are the simplest way to configure a one-off container since there's no
+Build from the release that matches your server. Env vars are the simplest way to configure a one-off container since there's no
 persistent home directory; to use saved profiles (`~/.config/openresto/config.json`) instead,
 mount a config directory across runs:
 
 ```bash
 docker run --rm -it -v openresto-cli-config:/home/node/.config/openresto \
-  ghcr.io/paradigmaec/openresto-cli:<tag> auth login
+  openresto-cli auth login
 docker run --rm -v openresto-cli-config:/home/node/.config/openresto \
-  ghcr.io/paradigmaec/openresto-cli:<tag> bookings list
+  openresto-cli bookings list
 ```
 
 (`auth login` needs `-it` so its hidden-input prompt has a real terminal; later commands don't.)
